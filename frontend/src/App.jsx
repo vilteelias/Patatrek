@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import ListaExcursiones from './paginas/ListaExcursiones';
+import './App.css';
 
 function App() {
-  const [mensaje, setMensaje] = useState('Conectando...')
-
-  useEffect(() => {
-    axios.get('/api/ping')
-        .then(res => setMensaje(res.data))
-        .catch(() => setMensaje('Error: no se pudo conectar con el backend'))
-  }, [])
-
-  return <h1>{mensaje}</h1>
+  return (
+      <main className="contenedor">
+        <ListaExcursiones />
+      </main>
+  );
 }
 
-export default App
+export default App;
