@@ -1,36 +1,38 @@
 import { useEffect, useState } from 'react';
-import { listarExcursiones } from '../api/excursiones';
-import TarjetaExcursion from '../componentes/TarjetaExcursion';
+import { listarExcursiones } from '../api/excursiones.js';
+import TarjetaExcursion from '../componentes/TarjetaExcursion.jsx';
 
+// CU-06 Listar excursiones (Visitante y Cliente): solo las activas.
 function ListaExcursiones() {
-    // (1) Estado: los datos que pueden cambiar
-    const [excursiones, setExcursiones] = useState([]);
-    const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState(null);
+  const [excursiones, setExcursiones] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
 
-    // (2) Efecto: se ejecuta una vez cuando el componente aparece
-    useEffect(() => {
-        listarExcursiones()
-            .then((datos) => setExcursiones(datos))
-            .catch((err) => setError(err.message))
-            .finally(() => setCargando(false));
-    }, []);
+  useEffect(() => {
+    listarExcursiones()
+      .then(setExcursiones)
+      .catch((e) => setError(e.message))
+      .finally(() => setCargando(false));
+  }, []);
 
-    // (3) Qué mostrar según el estado
-    if (cargando) return <p>Cargando excursiones...</p>;
-    if (error) return <p className="error">{error}</p>;
-    if (excursiones.length === 0) return <p>Todavía no hay excursiones registradas.</p>;
+  return (
+    <section>
+      <h1 className="titulo">Excursiones</h1>
+      <p className="subtitulo">Recorridos guiados por la Patagonia, para todos los niveles de experiencia.</p>
 
-    return (
-        <section>
-            <h1>Excursiones</h1>
-            <div className="grilla">
-                {excursiones.map((exc) => (                           // (4)
-                    <TarjetaExcursion key={exc.idExcursion} excursion={exc} />
-                ))}
-            </div>
-        </section>
-    );
+      {cargando && <p className="cargando">Cargando excursiones…</p>}
+      {error && <div className="alerta alerta--error">{error}</div>}
+      {!cargando && !error && excursiones.length === 0 && (
+        <p className="estado-vacio">Todavía no hay excursiones disponibles.</p>
+      )}
+
+      <div className="grilla-tarjetas">
+        {excursiones.map((excursion) => (
+          <TarjetaExcursion key={excursion.idExcursion} excursion={excursion} />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default ListaExcursiones;
