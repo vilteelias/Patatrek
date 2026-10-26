@@ -452,6 +452,7 @@
 
 /* ---------- Tabla ---------- */
 .tabla-contenedor {
+  position: relative; /* contiene los textos ocultos para lectores de pantalla */
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: var(--radio-grande);
