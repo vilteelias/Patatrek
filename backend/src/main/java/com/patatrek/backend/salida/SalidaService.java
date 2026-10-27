@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Iterator;
 import java.util.List;
 
 @Service
@@ -30,6 +31,56 @@ public class SalidaService {
 
     public List<Salida> obtenerTodas() {
         return salidaRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Salida obtenerPorId(Long id) {
+        return salidaRepository.findByIdConGuias(id)
+                .orElseThrow(() -> new RuntimeException("Salida no encontrada con ID: " + id));
+    }
+
+    @Transactional
+    public Salida asignarAyudantesYRecalcularCupos(Long idSalida, AsignacionAyudantesDTO dto) {
+        List<Long> idsGuiaAyudantes = dto.getIdsGuiaAyudantes();
+
+        Salida salida = salidaRepository.findByIdConGuias(idSalida)
+                .orElseThrow(() -> new RuntimeException("Salida no encontrada con ID: " + idSalida));
+
+        // 1. Identificar si algún ayudante coincide con el guía responsable de la salida
+        for (AsignacionGuia ag : salida.getAsignacionGuias()) {
+            if (ag.getTipoGuia() == TipoGuia.RESPONSABLE && ag.getGuia() != null) {
+                Long idResponsable = ag.getGuia().getIdUsuario(); // Ajustá si tu ID se llama diferente
+                if (idsGuiaAyudantes.contains(idResponsable)) {
+                    throw new RuntimeException("El guía responsable de la salida no puede ser asignado también como ayudante.");
+                }
+            }
+        }
+
+        // 2. Remover guías ayudantes anteriores de forma segura
+        Iterator<AsignacionGuia> iterator = salida.getAsignacionGuias().iterator();
+        while (iterator.hasNext()) {
+            AsignacionGuia ag = iterator.next();
+            if (ag.getTipoGuia() == TipoGuia.AYUDANTE) {
+                iterator.remove();
+            }
+        }
+
+        // 3. Agregar los nuevos ayudantes
+        for (Long idGuia : idsGuiaAyudantes) {
+            Guia guia = guiaRepository.findById(idGuia)
+                    .orElseThrow(() -> new RuntimeException("Guía no encontrado con ID: " + idGuia));
+            
+            AsignacionGuia nuevaAsignacion = new AsignacionGuia(guia, salida, TipoGuia.AYUDANTE);
+            salida.getAsignacionGuias().add(nuevaAsignacion);
+        }
+
+        // 4. Recálculo de cupos
+        int cupoBase = salida.getCupoBase();
+        int cantidadAyudantes = idsGuiaAyudantes.size();
+        int variacion = (int) Math.floor(cupoBase * 0.25 * cantidadAyudantes);
+        salida.setCupoTotal(cupoBase + variacion);
+
+        return salidaRepository.save(salida);
     }
 
     @Transactional

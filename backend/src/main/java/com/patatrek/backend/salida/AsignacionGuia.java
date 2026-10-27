@@ -1,5 +1,5 @@
 package com.patatrek.backend.salida;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.patatrek.backend.usuario.Guia;
 import jakarta.persistence.*;
 
@@ -22,6 +22,7 @@ public class AsignacionGuia {
     @MapsId("idSalida")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_salida")
+    @JsonIgnore
     private Salida salida;
 
     @Enumerated(EnumType.STRING)

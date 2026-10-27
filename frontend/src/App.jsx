@@ -7,6 +7,7 @@ import ListaExcursiones from './paginas/ListaExcursiones.jsx';
 import AdminExcursiones from './paginas/admin/AdminExcursiones.jsx';
 import FormularioExcursion from './paginas/admin/FormularioExcursion.jsx';
 import {PlanificarSalida} from './components/salidas/PlanificarSalida.jsx';
+import {AsignarPersonalCupos} from './components/salidas/AsignarPersonalCupos.jsx';
 import Proximamente from './paginas/Proximamente.jsx';
 import GuiaShell from './paginas/guia/GuiaShell.jsx';
 import MisSalidasPagina from './paginas/guia/MisSalidasPagina.jsx';
@@ -56,6 +57,7 @@ function App() {
         <Route path="excursiones/:id/editar" element={<FormularioExcursion />} />
        
         <Route path="salidas/nueva" element={<PlanificarSalida/>}/>
+        <Route path="salidas/:id/asignar-cupos" element={<AsignarPersonalCupos />} />
         <Route path="*" element={<Proximamente />} />
       </Route>
     </Routes>
