@@ -1,13 +1,14 @@
 // Layout de Visitante / Cliente. Generado con v0 y adaptado a React + Vite (react-router-dom).
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
 /**
  * onIniciarSesion / onRegistrarme: se conectan en el módulo de Autenticación.
  * Mientras no estén, los botones se muestran deshabilitados.
+ * usuario: { nombre, apellido } del cliente (por ahora, la clienta de demostración).
  */
-export function PublicLayout({ onIniciarSesion, onRegistrarme, children }) {
+export function PublicLayout({ usuario, onIniciarSesion, onRegistrarme, children }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border bg-card">
@@ -15,23 +16,56 @@ export function PublicLayout({ onIniciarSesion, onRegistrarme, children }) {
           <Link to="/" aria-label="PataTrek, ir al inicio" className="shrink-0">
             <img src={logo} alt="PataTrek" className="size-[54px] rounded-full" />
           </Link>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              onClick={onIniciarSesion}
-              disabled={!onIniciarSesion}
-              title={onIniciarSesion ? undefined : 'Disponible en el módulo de Autenticación'}
-            >
-              Iniciar sesión
-            </Button>
-            <Button
-              onClick={onRegistrarme}
-              disabled={!onRegistrarme}
-              title={onRegistrarme ? undefined : 'Disponible en el módulo de Autenticación'}
-            >
-              Registrarme
-            </Button>
-          </div>
+          {usuario ? (
+            <nav className="flex items-center gap-1 sm:gap-3" aria-label="Menú del cliente">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  `rounded-md px-2.5 py-1.5 text-sm hover:bg-muted ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`
+                }
+              >
+                Excursiones
+              </NavLink>
+              <NavLink
+                to="/mis-reservas"
+                className={({ isActive }) =>
+                  `rounded-md px-2.5 py-1.5 text-sm hover:bg-muted ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`
+                }
+              >
+                Mis reservas
+              </NavLink>
+              <span className="ml-1 flex items-center gap-2">
+                <span
+                  className="flex size-8 items-center justify-center rounded-full bg-warning text-xs font-semibold text-white"
+                  aria-hidden="true"
+                >
+                  {(usuario.nombre?.[0] ?? '') + (usuario.apellido?.[0] ?? '')}
+                </span>
+                <span className="hidden text-sm text-foreground sm:inline">
+                  {usuario.apellido}, {usuario.nombre}
+                </span>
+              </span>
+            </nav>
+          ) : (
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant="ghost"
+                onClick={onIniciarSesion}
+                disabled={!onIniciarSesion}
+                title={onIniciarSesion ? undefined : 'Disponible en el módulo de Autenticación'}
+              >
+                Iniciar sesión
+              </Button>
+              <Button
+                onClick={onRegistrarme}
+                disabled={!onRegistrarme}
+                title={onRegistrarme ? undefined : 'Disponible en el módulo de Autenticación'}
+              >
+                Registrarme
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
