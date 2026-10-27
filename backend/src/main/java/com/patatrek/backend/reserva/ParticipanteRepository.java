@@ -12,4 +12,6 @@ public interface ParticipanteRepository extends JpaRepository<Participante, Long
     @EntityGraph(attributePaths = "reserva")
     List<Participante> findByReservaSalidaIdSalidaAndReservaEstadoReservaInOrderByApellidoAscNombreAsc(
             Long idSalida, Collection<EstadoReserva> estados);
+
+    List<Participante> findByReservaIdReservaOrderByIdParticipanteAsc(Long idReserva);
 }

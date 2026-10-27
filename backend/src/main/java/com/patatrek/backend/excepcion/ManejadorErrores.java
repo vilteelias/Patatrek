@@ -27,6 +27,11 @@ public class ManejadorErrores {
                 .body(new RespuestaError("Revisá los datos marcados antes de continuar.", errores));
     }
 
+    @ExceptionHandler(DatosInvalidosException.class)
+    public ResponseEntity<RespuestaError> datosInvalidosServicio(DatosInvalidosException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(ex.getMessage(), ex.getErrores()));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> jsonInvalido(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()

@@ -305,12 +305,34 @@
   color: var(--arena-oscura);
 }
 
-.tarjeta__precio {
+.tarjeta__pie {
   margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tarjeta__precio {
   font-weight: 600;
   font-size: 1.05rem;
+}
+
+.tarjeta__enlace {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--blanco);
+  background: var(--verde-700);
+  padding: 7px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.tarjeta__enlace:hover {
+  background: var(--verde-900);
 }
 
 .tarjeta__precio span {

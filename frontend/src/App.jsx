@@ -2,7 +2,6 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import './App.css';
 
 import { AdminLayout } from '@/components/layouts/admin-layout';
-import { PublicLayout } from '@/components/layouts/public-layout';
 import ListaExcursiones from './paginas/ListaExcursiones.jsx';
 import AdminExcursiones from './paginas/admin/AdminExcursiones.jsx';
 import FormularioExcursion from './paginas/admin/FormularioExcursion.jsx';
@@ -12,6 +11,12 @@ import MisSalidasPagina from './paginas/guia/MisSalidasPagina.jsx';
 import NominaPagina from './paginas/guia/NominaPagina.jsx';
 import ControlAsistenciaPagina from './paginas/guia/ControlAsistenciaPagina.jsx';
 import FinalizarSalidaPagina from './paginas/guia/FinalizarSalidaPagina.jsx';
+import ClienteShell from './paginas/cliente/ClienteShell.jsx';
+import ExcursionDetallePagina from './paginas/cliente/ExcursionDetallePagina.jsx';
+import ReservarPagina from './paginas/cliente/ReservarPagina.jsx';
+import ReservaDetallePagina from './paginas/cliente/ReservaDetallePagina.jsx';
+import PagoPagina from './paginas/cliente/PagoPagina.jsx';
+import MisReservasPagina from './paginas/cliente/MisReservasPagina.jsx';
 
 // Módulos del Administrador ya implementados. Se agregan acá a medida que se terminan.
 const MODULOS_DISPONIBLES = ['/admin/excursiones'];
@@ -19,15 +24,14 @@ const MODULOS_DISPONIBLES = ['/admin/excursiones'];
 function App() {
   return (
     <Routes>
-      {/* Visitante y Cliente */}
-      <Route
-        element={
-          <PublicLayout>
-            <Outlet />
-          </PublicLayout>
-        }
-      >
+      {/* Visitante y Cliente (por ahora con la clienta de demostración, hasta Autenticación) */}
+      <Route element={<ClienteShell />}>
         <Route path="/" element={<ListaExcursiones />} />
+        <Route path="/excursiones/:id" element={<ExcursionDetallePagina />} />
+        <Route path="/reservar/:idSalida" element={<ReservarPagina />} />
+        <Route path="/mis-reservas" element={<MisReservasPagina />} />
+        <Route path="/reservas/:id" element={<ReservaDetallePagina />} />
+        <Route path="/reservas/:id/pago" element={<PagoPagina />} />
         <Route path="*" element={<Proximamente titulo="Página no encontrada" texto="La dirección no existe." />} />
       </Route>
 

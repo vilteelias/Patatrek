@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { DIFICULTAD, dias, pesos } from '../utilidades/formato.js';
 
 // Degradés de respaldo cuando la excursión todavía no tiene imagen (como en el prototipo)
@@ -36,9 +37,15 @@ function TarjetaExcursion({ excursion }) {
           {!excursion.aceptaMenores && <li>Solo mayores de 18</li>}
         </ul>
 
-        <p className="tarjeta__precio">
-          {pesos(excursion.precio)} <span>por persona</span>
-        </p>
+        <div className="tarjeta__pie">
+          <p className="tarjeta__precio">
+            {pesos(excursion.precio)} <span>por persona</span>
+          </p>
+          <Link to={`/excursiones/${excursion.idExcursion}`} className="tarjeta__enlace">
+            Ver salidas <span aria-hidden="true">→</span>
+            <span className="solo-lector"> de {excursion.nombre}</span>
+          </Link>
+        </div>
       </div>
     </article>
   );
