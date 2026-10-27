@@ -1,6 +1,7 @@
 package com.patatrek.backend.reserva;
 
 import com.patatrek.backend.equipamiento.Equipamiento;
+import com.patatrek.backend.excepcion.AccesoDenegadoException;
 import com.patatrek.backend.excepcion.DatosInvalidosException;
 import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
@@ -112,14 +113,177 @@ public class ReservaService {
                         "No existe el cliente de demostración " + correoClienteDemo + "."));
     }
 
-    @Transactional(readOnly = true)
-    public List<ReservaClienteResponse> misReservas() {
+    /**
+     * CU-21 Listar reservas realizadas: solo las reservas en las que el cliente es titular.
+     * Filtros opcionales: rango de fechas de la salida y estado de la reserva (si se usan los dos, se cumplen ambos).
+     */
+    @Transactional
+    public List<ReservaClienteResponse> misReservas(LocalDate desde, LocalDate hasta, EstadoReserva estado) {
+        validarRango(desde, hasta);
         Cliente cliente = clienteActual();
-        return reservaRepository.findByClienteIdUsuarioOrderByFechaHoraDesc(cliente.getIdUsuario()).stream()
-                .map(r -> new ReservaClienteResponse(r.getIdReserva(), r.getSalida().getExcursion().getNombre(),
-                        r.getSalida().getFechaInicio(), r.getSalida().getFechaFinalizacion(), r.getEstadoReserva(),
-                        r.getCantidadParticipantes(), r.getMontoTotal(), r.getSaldoPendiente()))
+        List<Reserva> reservas = reservaRepository.findByClienteIdUsuarioOrderByFechaHoraDesc(cliente.getIdUsuario());
+        reservas.forEach(this::cancelarSiVencio);
+        List<Reserva> filtradas = reservas.stream()
+                .filter(r -> cumpleFiltros(r, desde, hasta, estado))
                 .toList();
+        Map<Long, String> estadosPago = estadosDePago(filtradas);
+        return filtradas.stream()
+                .map(r -> new ReservaClienteResponse(r.getIdReserva(), r.getSalida().getExcursion().getNombre(),
+                        r.getSalida().getFechaInicio(), r.getSalida().getFechaFinalizacion(), r.getSalida().getHoraInicio(),
+                        r.getEstadoReserva(), r.getCantidadParticipantes(), r.getMontoTotal(), r.getSaldoPendiente(),
+                        estadosPago.get(r.getIdReserva()), r.getFechaHora()))
+                .toList();
+    }
+
+    // =====================================================================
+    //  CU-20 Listar reservas generales (Administrador)
+    // =====================================================================
+
+    /**
+     * Filtros opcionales (RF-17): nombre de excursión (contiene), ID de salida, rango de fechas de la salida,
+     * DNI del cliente y estado de la reserva.
+     */
+    @Transactional
+    public List<ReservaAdminResponse> listarReservasGenerales(String excursion, Long idSalida, LocalDate desde,
+                                                              LocalDate hasta, String dni, EstadoReserva estado) {
+        validarRango(desde, hasta);
+        String textoExcursion = vacio(excursion) ? null : excursion.trim().toLowerCase(Locale.ROOT);
+        String textoDni = vacio(dni) ? null : dni.replaceAll("\\D", "");
+
+        List<Reserva> reservas = reservaRepository.findAllByOrderByFechaHoraDesc();
+        reservas.forEach(this::cancelarSiVencio);
+        List<Reserva> filtradas = reservas.stream()
+                .filter(r -> cumpleFiltros(r, desde, hasta, estado))
+                .filter(r -> textoExcursion == null
+                        || r.getSalida().getExcursion().getNombre().toLowerCase(Locale.ROOT).contains(textoExcursion))
+                .filter(r -> idSalida == null || idSalida.equals(r.getSalida().getIdSalida()))
+                .filter(r -> textoDni == null || textoDni.isEmpty() || r.getCliente().getDni().contains(textoDni))
+                .toList();
+        Map<Long, String> estadosPago = estadosDePago(filtradas);
+        return filtradas.stream()
+                .map(r -> new ReservaAdminResponse(r.getIdReserva(), r.getFechaHora(),
+                        r.getSalida().getExcursion().getNombre(), r.getSalida().getIdSalida(),
+                        r.getSalida().getFechaInicio(), r.getSalida().getFechaFinalizacion(),
+                        r.getCliente().getApellido() + ", " + r.getCliente().getNombre(), r.getCliente().getDni(),
+                        r.getCliente().getCorreoElectronico(), r.getCantidadParticipantes(), r.getEstadoReserva(),
+                        estadosPago.get(r.getIdReserva()), r.getMontoTotal(), r.getSaldoPendiente()))
+                .toList();
+    }
+
+    private static void validarRango(LocalDate desde, LocalDate hasta) {
+        if (desde != null && hasta != null && hasta.isBefore(desde)) {
+            throw new DatosInvalidosException("Revisá el rango de fechas.",
+                    Map.of("hasta", "La fecha \"hasta\" no puede ser anterior a la fecha \"desde\"."));
+        }
+    }
+
+    private static boolean cumpleFiltros(Reserva r, LocalDate desde, LocalDate hasta, EstadoReserva estado) {
+        LocalDate fecha = r.getSalida().getFechaInicio();
+        return (estado == null || r.getEstadoReserva() == estado)
+                && (desde == null || !fecha.isBefore(desde))
+                && (hasta == null || !fecha.isAfter(hasta));
+    }
+
+    /**
+     * Estado general del pago de cada reserva (RF-17): APROBADO si tiene algún pago aprobado,
+     * RECHAZADO si el último intento fue rechazado, PENDIENTE si todavía no pagó.
+     * (Las reservas de ejemplo no tienen registros de pago: si ya tienen algo abonado, se toman como APROBADO.)
+     */
+    private Map<Long, String> estadosDePago(List<Reserva> reservas) {
+        Map<Long, String> estados = new HashMap<>();
+        reservas.forEach(r -> estados.put(r.getIdReserva(),
+                r.getMontoTotal().compareTo(r.getSaldoPendiente()) > 0 ? EstadoPago.APROBADO.name() : EstadoPago.PENDIENTE.name()));
+        if (reservas.isEmpty()) return estados;
+        List<Pago> pagos = new ArrayList<>(pagoRepository.findByReservaIdReservaIn(
+                reservas.stream().map(Reserva::getIdReserva).toList()));
+        pagos.sort(Comparator.comparing(Pago::getIdPago));
+        Set<Long> conAprobado = new HashSet<>();
+        for (Pago p : pagos) {
+            Long id = p.getReserva().getIdReserva();
+            if (p.getEstadoPago() == EstadoPago.APROBADO || p.getEstadoPago() == EstadoPago.DEVUELTO) {
+                conAprobado.add(id);
+                estados.put(id, EstadoPago.APROBADO.name());
+            } else if (!conAprobado.contains(id)) {
+                estados.put(id, p.getEstadoPago().name());
+            }
+        }
+        return estados;
+    }
+
+    // =====================================================================
+    //  CU-23 Cancelar reserva (Cliente)
+    // =====================================================================
+
+    /**
+     * El cliente cancela una reserva Señada o Confirmada de una salida Disponible o Completa.
+     * Se liberan los cupos, las plazas de refugio y el equipamiento prestado.
+     * Regla de negocio: no hay devolución; lo abonado queda retenido en concepto de gastos administrativos.
+     */
+    @Transactional
+    public ReservaResponse cancelar(Long idReserva, String motivo) {
+        Reserva reserva = buscarReserva(idReserva);
+        if (!reserva.getCliente().getIdUsuario().equals(clienteActual().getIdUsuario())) {
+            throw new AccesoDenegadoException("Solo el cliente titular puede cancelar la reserva.");
+        }
+        Salida salida = buscarSalida(reserva.getSalida().getIdSalida(), true);
+        String motivoNoCancelable = motivoNoCancelable(reserva);
+        if (motivoNoCancelable != null) {
+            throw new ReglaNegocioException(motivoNoCancelable);
+        }
+
+        int n = reserva.getCantidadParticipantes();
+        salida.setCuposOcupados(Math.max(0, salida.getCuposOcupados() - n));
+        if (salida.getEstadoSalida() == EstadoSalida.COMPLETA && salida.getCuposDisponibles() > 0) {
+            salida.setEstadoSalida(EstadoSalida.DISPONIBLE);
+        }
+        if (reserva.getModalidadAlojamiento() == ModalidadAlojamiento.REFUGIO) {
+            for (AsignacionRefugio a : refugiosDe(salida)) {
+                a.setPlazasOcupadas(Math.max(0, a.getPlazasOcupadas() - n));
+            }
+        }
+        // El equipamiento prestado vuelve a estar disponible (deja de contarse como CONSOLIDADO).
+        for (AsignacionEquipamiento a : asignacionEquipamientoRepository.findByReservaIdReserva(reserva.getIdReserva())) {
+            if (a.getEstadoAsignacion() != EstadoAsignacion.LIBERADO) {
+                a.setEstadoAsignacion(EstadoAsignacion.LIBERADO);
+            }
+        }
+
+        String motivoLimpio = vacio(motivo) ? null : motivo.trim();
+        reserva.setEstadoReserva(EstadoReserva.CANCELADA);
+        reserva.setMotivoCancelacion(motivoLimpio == null
+                ? "Cancelada por el cliente (no indicó un motivo)."
+                : "Cancelada por el cliente. Motivo: " + motivoLimpio);
+
+        BigDecimal abonado = reserva.getMontoTotal().subtract(reserva.getSaldoPendiente()).max(BigDecimal.ZERO);
+        notificacionService.enviar(reserva.getCliente().getCorreoElectronico(),
+                "PataTrek — Cancelaste la reserva #" + reserva.getIdReserva(),
+                """
+                ¡Hola %s!
+
+                Confirmamos la cancelación de tu reserva #%d — %s (salida del %s).
+                Participantes: %d
+                Motivo: %s
+                Importe abonado: $ %s. Según las condiciones de PataTrek, no se devuelve
+                porque queda retenido en concepto de gastos administrativos.
+
+                Los lugares, las plazas de refugio y el equipamiento ya quedaron liberados.
+                """.formatted(reserva.getCliente().getNombre(), reserva.getIdReserva(),
+                        salida.getExcursion().getNombre(), salida.getFechaInicio().format(FECHA), n,
+                        motivoLimpio == null ? "(no informado)" : motivoLimpio, abonado.toPlainString()));
+        log.info("Reserva #{} cancelada por el cliente", reserva.getIdReserva());
+        return respuesta(reserva);
+    }
+
+    /** null si la reserva se puede cancelar; si no, el motivo. */
+    private String motivoNoCancelable(Reserva r) {
+        if (r.getEstadoReserva() != EstadoReserva.SENADA && r.getEstadoReserva() != EstadoReserva.CONFIRMADA) {
+            return "Solo se puede cancelar una reserva Señada o Confirmada.";
+        }
+        EstadoSalida estadoSalida = r.getSalida().getEstadoSalida();
+        if (estadoSalida != EstadoSalida.DISPONIBLE && estadoSalida != EstadoSalida.COMPLETA) {
+            return "La salida ya está en curso, finalizada o cancelada: la reserva no se puede cancelar.";
+        }
+        return null;
     }
 
     // =====================================================================
@@ -723,6 +887,8 @@ public class ReservaService {
                 pagoRepository.findByReservaIdReservaOrderByIdPagoAsc(r.getIdReserva()).stream()
                         .map(p -> new ReservaResponse.PagoResumen(p.getIdPago(), p.getFechaPago(), p.getImporte(),
                                 p.getModoPago(), p.getEstadoPago(), p.getNroTransaccion()))
-                        .toList());
+                        .toList(),
+                r.getMontoTotal().subtract(r.getSaldoPendiente()).max(BigDecimal.ZERO),
+                motivoNoCancelable(r) == null);
     }
 }

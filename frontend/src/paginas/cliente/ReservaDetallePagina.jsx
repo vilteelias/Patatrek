@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
-import { CheckCircle2, CreditCard, XCircle } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { CheckCircle2, CreditCard, Info, XCircle } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { CancelarReservaDialog } from '@/components/reserva/cancelar-reserva-dialog';
 import { EstadoReservaBadge } from '@/components/reserva/estado-reserva-badge';
 import { ContadorRetencion } from '@/components/reserva/contador-retencion';
 import {
@@ -13,7 +14,7 @@ import {
   hora,
   pesos,
 } from '@/components/reserva/formato';
-import { obtenerReserva } from '@/api/reservas';
+import { cancelarReserva, obtenerReserva } from '@/api/reservas';
 import { cn } from '@/lib/utils';
 import { Aviso, Cargando, Volver } from './Estados';
 
@@ -29,7 +30,7 @@ function Fila({ etiqueta, children, fuerte }) {
 const ESTADO_EQUIPO = { RETENIDO: 'Retenido', CONSOLIDADO: 'Reservado', LIBERADO: 'Liberado' };
 
 /**
- * Resultado del pago y consulta de la reserva (versión inicial de CU-19).
+ * CU-19 Consultar y gestionar reserva: resultado del pago, detalle, pagar el saldo y cancelar (CU-23).
  * Si se llega desde el pago, location.state.resultado trae el mensaje de CU-26.
  */
 export default function ReservaDetallePagina() {
@@ -38,6 +39,9 @@ export default function ReservaDetallePagina() {
   const resultado = state?.resultado;
   const [reserva, setReserva] = useState(resultado?.reserva ?? null);
   const [error, setError] = useState('');
+  const [cancelando, setCancelando] = useState(false);
+  const [aviso, setAviso] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     obtenerReserva(id)
@@ -47,6 +51,18 @@ export default function ReservaDetallePagina() {
 
   if (error) return <Aviso titulo="No pudimos cargar la reserva" mensaje={error} volverA="/mis-reservas" textoVolver="Mis reservas" />;
   if (!reserva) return <Cargando texto="Cargando reserva…" />;
+
+  // CU-23 → al confirmar, se vuelve al listado de reservas (CU-19 3c).
+  const confirmarCancelacion = async (motivo) => {
+    await cancelarReserva(reserva.idReserva, motivo);
+    navigate('/mis-reservas', {
+      state: { aviso: `Cancelaste la reserva #${reserva.idReserva}. Te enviamos el detalle por correo.` },
+    });
+  };
+  const mantenerReserva = () => {
+    setCancelando(false);
+    setAviso('No se realizaron cambios en la reserva.'); // flujo 3.a
+  };
 
   const aprobado = resultado?.estadoPago === 'APROBADO';
   const s = reserva.salida;
@@ -116,6 +132,7 @@ export default function ReservaDetallePagina() {
           <Fila etiqueta="Monto total" fuerte>
             {pesos(reserva.montoTotal)}
           </Fila>
+          {Number(reserva.importeAbonado) > 0 && <Fila etiqueta="Importe abonado">{pesos(reserva.importeAbonado)}</Fila>}
           {['PENDIENTE_PAGO', 'SENADA', 'CONFIRMADA'].includes(reserva.estadoReserva) && (
             <Fila etiqueta="Saldo pendiente" fuerte>
               {pesos(reserva.saldoPendiente)}
@@ -123,14 +140,38 @@ export default function ReservaDetallePagina() {
           )}
         </dl>
 
-        {reserva.modosPagoDisponibles.length > 0 && (
-          <Link
-            to={`/reservas/${reserva.idReserva}/pago`}
-            className={cn(buttonVariants(), 'mt-5 h-11 w-full px-6 font-semibold sm:w-auto')}
-          >
-            <CreditCard aria-hidden="true" />
-            {reserva.estadoReserva === 'SENADA' ? 'Pagar el saldo restante' : 'Continuar con el pago'}
-          </Link>
+        {(reserva.modosPagoDisponibles.length > 0 || reserva.cancelable) && (
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {reserva.modosPagoDisponibles.length > 0 ? (
+              <Link
+                to={`/reservas/${reserva.idReserva}/pago`}
+                className={cn(buttonVariants(), 'h-11 w-full px-6 font-semibold sm:w-auto')}
+              >
+                <CreditCard aria-hidden="true" />
+                {reserva.estadoReserva === 'SENADA' ? 'Pagar el saldo restante' : 'Continuar con el pago'}
+              </Link>
+            ) : (
+              <span />
+            )}
+            {reserva.cancelable && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 border-destructive/40 px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => {
+                  setAviso('');
+                  setCancelando(true);
+                }}
+              >
+                Cancelar reserva
+              </Button>
+            )}
+          </div>
+        )}
+        {aviso && (
+          <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground" role="status">
+            <Info className="size-4 shrink-0" aria-hidden="true" /> {aviso}
+          </p>
         )}
         {reserva.motivoNoPuedePagar && reserva.estadoReserva === 'SENADA' && (
           <p className="mt-4 text-sm text-muted-foreground">{reserva.motivoNoPuedePagar}</p>
@@ -204,6 +245,12 @@ export default function ReservaDetallePagina() {
       <Link to="/" className={cn(buttonVariants({ variant: 'outline' }), 'h-11 w-fit px-5')}>
         Ver más excursiones
       </Link>
+      <CancelarReservaDialog
+        abierto={cancelando}
+        importeAbonado={reserva.importeAbonado}
+        onConfirmar={confirmarCancelacion}
+        onMantener={mantenerReserva}
+      />
     </div>
   );
 }

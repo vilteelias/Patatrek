@@ -1,15 +1,19 @@
 package com.patatrek.backend.controller;
 
+import com.patatrek.backend.reserva.EstadoReserva;
 import com.patatrek.backend.reserva.ReservaService;
 import com.patatrek.backend.reserva.dto.*;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Rol Cliente — paquete "Reservas y pagos": CU-18 Realizar reserva y CU-26 Realizar pago.
+ * Rol Cliente — paquete "Reservas y pagos": CU-18 Realizar reserva, CU-19 Consultar reserva,
+ * CU-21 Listar reservas realizadas, CU-23 Cancelar reserva y CU-26 Realizar pago.
  * Las rutas quedarán protegidas por rol en el módulo de Autenticación.
  */
 @RestController
@@ -27,9 +31,13 @@ public class ReservaController {
         return ClienteActualResponse.de(service.clienteActual());
     }
 
+    /** CU-21: filtros opcionales ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD&estado=SENADA */
     @GetMapping("/api/cliente/reservas")
-    public List<ReservaClienteResponse> misReservas() {
-        return service.misReservas();
+    public List<ReservaClienteResponse> misReservas(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) EstadoReserva estado) {
+        return service.misReservas(desde, hasta, estado);
     }
 
     /** Próximas salidas de una excursión, indicando si se pueden reservar y por qué no. */
@@ -60,6 +68,12 @@ public class ReservaController {
     @PostMapping("/api/reservas/{id}/pagos")
     public ResultadoPagoResponse pagar(@PathVariable Long id, @Valid @RequestBody PagoRequest datos) {
         return service.pagar(id, datos);
+    }
+
+    /** CU-23: el cliente cancela su reserva (sin devolución). El motivo es opcional. */
+    @PostMapping("/api/reservas/{id}/cancelacion")
+    public ReservaResponse cancelar(@PathVariable Long id, @Valid @RequestBody(required = false) CancelacionRequest datos) {
+        return service.cancelar(id, datos == null ? null : datos.motivo());
     }
 
     /** SOLO DEMO: fuerza el vencimiento de la retención para no esperar 10 minutos. */

@@ -2,6 +2,12 @@ package com.patatrek.backend.config;
 
 import com.patatrek.backend.excursion.Excursion;
 import com.patatrek.backend.excursion.ExcursionRepository;
+import com.patatrek.backend.pago.EstadoPago;
+import com.patatrek.backend.pago.ModoPago;
+import com.patatrek.backend.pago.Pago;
+import com.patatrek.backend.pago.PagoRepository;
+import com.patatrek.backend.reserva.Reserva;
+import com.patatrek.backend.reserva.ReservaRepository;
 import com.patatrek.backend.salida.EstadoSalida;
 import com.patatrek.backend.salida.Salida;
 import com.patatrek.backend.salida.SalidaRepository;
@@ -27,6 +33,8 @@ import java.util.stream.Collectors;
  *  - Ascenso Cerro Perito Moreno en 9 días: quedan 2 cupos, no admite menores, pide Casco y Guantes.
  *  - Ascenso Cerro Perito Moreno en 2 días: no se puede reservar (72 horas o menos).
  * Además ya existen (DatosInicialesGuia) la Travesía Cerro Alto en 20 días con refugio y el Circuito Lagos en 10 días.
+ * También registra el pago aprobado de las reservas de ejemplo que ya tienen algo abonado
+ * (para que el listado de reservas del administrador muestre sus pagos).
  * Se carga una sola vez: si la clienta de demostración ya existe, no hace nada.
  */
 @Component
@@ -37,14 +45,19 @@ public class DatosInicialesReserva implements CommandLineRunner {
     private final ClienteRepository clienteRepository;
     private final ExcursionRepository excursionRepository;
     private final SalidaRepository salidaRepository;
+    private final ReservaRepository reservaRepository;
+    private final PagoRepository pagoRepository;
     private final String correoClienteDemo;
 
     public DatosInicialesReserva(ClienteRepository clienteRepository, ExcursionRepository excursionRepository,
-                                 SalidaRepository salidaRepository,
+                                 SalidaRepository salidaRepository, ReservaRepository reservaRepository,
+                                 PagoRepository pagoRepository,
                                  @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo) {
         this.clienteRepository = clienteRepository;
         this.excursionRepository = excursionRepository;
         this.salidaRepository = salidaRepository;
+        this.reservaRepository = reservaRepository;
+        this.pagoRepository = pagoRepository;
         this.correoClienteDemo = correoClienteDemo;
     }
 
@@ -56,6 +69,20 @@ public class DatosInicialesReserva implements CommandLineRunner {
         }
         clienteRepository.save(new Cliente("38555777", "Sofía", "Ibarra", correoClienteDemo, "2804-667788",
                 LocalDate.of(1994, 3, 22)));
+
+        // Pagos de las reservas de ejemplo (DatosInicialesGuia las crea sin registros de pago)
+        if (pagoRepository.count() == 0) {
+            for (Reserva r : reservaRepository.findAll()) {
+                java.math.BigDecimal abonado = r.getMontoTotal().subtract(r.getSaldoPendiente());
+                if (abonado.signum() > 0) {
+                    Pago pago = new Pago(r, abonado, r.getSaldoPendiente().signum() == 0 ? ModoPago.TOTAL : ModoPago.SENA);
+                    pago.setEstadoPago(EstadoPago.APROBADO);
+                    pago.setNroTransaccion("SIM-DEMO" + String.format("%04d", r.getIdReserva()));
+                    pago.setFechaPago(r.getFechaHora().plusMinutes(3));
+                    pagoRepository.save(pago);
+                }
+            }
+        }
 
         LocalDate hoy = LocalDate.now();
         Map<String, Excursion> excursiones = excursionRepository.findAllByOrderByNombreAsc().stream()

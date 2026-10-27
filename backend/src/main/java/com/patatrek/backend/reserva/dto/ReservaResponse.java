@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-/** Detalle de una reserva: resumen, tiempo de retención restante, recursos y pagos. */
+/** Detalle de una reserva: resumen, tiempo de retención restante, recursos, pagos y si se puede cancelar (CU-19). */
 public record ReservaResponse(
         Long idReserva,
         EstadoReserva estadoReserva,
@@ -31,7 +31,9 @@ public record ReservaResponse(
         List<ParticipanteResumen> participantes,
         List<RefugioResumen> refugios,
         List<EquipamientoResumen> equipamiento,
-        List<PagoResumen> pagos
+        List<PagoResumen> pagos,
+        BigDecimal importeAbonado,
+        boolean cancelable
 ) {
     public record SalidaResumen(Long idSalida, Long idExcursion, String excursion, LocalDate fechaInicio,
                                 LocalDate fechaFinalizacion, LocalTime horaInicio, LocalTime horaFinalizacion,

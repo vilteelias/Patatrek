@@ -213,4 +213,73 @@ class ReservaApiTest {
         mvc.perform(get("/api/cliente/reservas"))
                 .andExpect(jsonPath("$[0].estadoReserva").value("CANCELADA"));
     }
+
+    @Test
+    void cancelarReservaPagadaLiberaCuposSinDevolucion() throws Exception {
+        long idReserva = crearReservaLaguna(2);
+        long idSalida = idSalidaReservable("Sendero Laguna del Bosque");
+        int ocupadosAntes = salidaRepository.findById(idSalida).orElseThrow().getCuposOcupados();
+
+        mvc.perform(post("/api/reservas/" + idReserva + "/pagos").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"modoPago\":\"SENA\",\"aprobar\":true}"))
+                .andExpect(jsonPath("$.reserva.cancelable").value(true));
+        assertThat(salidaRepository.findById(idSalida).orElseThrow().getCuposOcupados()).isEqualTo(ocupadosAntes + 2);
+
+        mvc.perform(post("/api/reservas/" + idReserva + "/cancelacion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"motivo\":\"Cambio de planes\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoReserva").value("CANCELADA"))
+                .andExpect(jsonPath("$.motivoCancelacion", containsString("Cambio de planes")))
+                .andExpect(jsonPath("$.importeAbonado", importe(42000)))
+                .andExpect(jsonPath("$.cancelable").value(false));
+
+        assertThat(salidaRepository.findById(idSalida).orElseThrow().getCuposOcupados()).isEqualTo(ocupadosAntes);
+
+        // No se puede cancelar dos veces
+        mvc.perform(post("/api/reservas/" + idReserva + "/cancelacion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void reservaPendienteDePagoNoSeCancelaManualmente() throws Exception {
+        long idReserva = crearReservaLaguna(1);
+        mvc.perform(post("/api/reservas/" + idReserva + "/cancelacion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje", containsString("Señada o Confirmada")));
+    }
+
+    @Test
+    void misReservasYReservasGeneralesConFiltros() throws Exception {
+        long idReserva = crearReservaLaguna(1);
+
+        mvc.perform(get("/api/cliente/reservas").param("estado", "PENDIENTE_PAGO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].idReserva").value(idReserva))
+                .andExpect(jsonPath("$[0].estadoPago").value("PENDIENTE"));
+
+        mvc.perform(get("/api/cliente/reservas").param("estado", "CONFIRMADA"))
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        // Administrador: todas las reservas (las de ejemplo + la nueva), filtrando por DNI y por excursión
+        mvc.perform(get("/api/admin/reservas"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", greaterThan(5)));
+        mvc.perform(get("/api/admin/reservas").param("dni", "38555777"))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].cliente").value("Ibarra, Sofía"));
+        mvc.perform(get("/api/admin/reservas").param("excursion", "perito").param("estado", "CONFIRMADA"))
+                .andExpect(jsonPath("$[*].excursion", everyItem(is("Ascenso Cerro Perito Moreno"))))
+                .andExpect(jsonPath("$[*].estadoPago", everyItem(is("APROBADO"))));
+
+        // Rango de fechas invertido
+        mvc.perform(get("/api/admin/reservas").param("desde", "2026-12-01").param("hasta", "2026-11-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errores.hasta").exists());
+        // Estado inexistente
+        mvc.perform(get("/api/admin/reservas").param("estado", "XYZ"))
+                .andExpect(status().isBadRequest());
+    }
 }

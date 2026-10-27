@@ -32,6 +32,14 @@ public class ManejadorErrores {
         return ResponseEntity.badRequest().body(new RespuestaError(ex.getMessage(), ex.getErrores()));
     }
 
+    /** Un filtro con formato inválido en la URL (ej. ?estado=XYZ o ?desde=31-12-2026). */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<RespuestaError> parametroInvalido(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(
+                "El valor de \"" + ex.getName() + "\" no es válido.", Map.of(ex.getName(), "Valor no válido.")));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> jsonInvalido(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()

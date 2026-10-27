@@ -23,3 +23,17 @@ export function fechaHora(valor) {
 export const MODO_PAGO = { SENA: 'Seña (50%)', TOTAL: 'Pago completo', SALDO: 'Saldo restante' };
 export const ESTADO_PAGO = { PENDIENTE: 'Pendiente', APROBADO: 'Aprobado', RECHAZADO: 'Rechazado', DEVUELTO: 'Devuelto' };
 export const ALOJAMIENTO = { REFUGIO: 'Refugio', CARPA_PROPIA: 'Carpa propia' };
+
+/** Estados de reserva para los filtros (CU-20 y CU-21), en el orden del documento. */
+export const ESTADOS_RESERVA = [
+  { valor: 'SENADA', etiqueta: 'Señada' },
+  { valor: 'CONFIRMADA', etiqueta: 'Confirmada' },
+  { valor: 'CANCELADA', etiqueta: 'Cancelada' },
+  { valor: 'PENDIENTE_PAGO', etiqueta: 'Pendiente de pago' },
+  { valor: 'PENDIENTE_DEVOLUCION', etiqueta: 'Pendiente de devolución' },
+  { valor: 'DEVUELTA', etiqueta: 'Devuelta' },
+];
+
+/** Clases de un <select> nativo con el mismo aspecto que los Input. */
+export const CLASE_SELECT =
+  'h-10 w-full rounded-lg border border-input bg-card px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';

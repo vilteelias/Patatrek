@@ -7,8 +7,33 @@ export function obtenerClienteActual() {
   return pedir('/api/cliente/yo');
 }
 
-export function listarMisReservas() {
-  return pedir('/api/cliente/reservas');
+/** Arma "?clave=valor&..." solo con los filtros que tienen valor. */
+function consulta(filtros = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filtros).forEach(([clave, valor]) => {
+    if (valor !== undefined && valor !== null && String(valor).trim() !== '') params.append(clave, String(valor).trim());
+  });
+  const texto = params.toString();
+  return texto ? `?${texto}` : '';
+}
+
+/** CU-21. filtros: { desde, hasta, estado } (todos opcionales) */
+export function listarMisReservas(filtros) {
+  return pedir(`/api/cliente/reservas${consulta(filtros)}`);
+}
+
+/** CU-23. El motivo es opcional. */
+export function cancelarReserva(id, motivo) {
+  return pedir(`/api/reservas/${id}/cancelacion`, { metodo: 'POST', cuerpo: { motivo: motivo || null } });
+}
+
+/** CU-20 (Administrador). filtros: { excursion, idSalida, desde, hasta, dni, estado } */
+export function listarReservasAdmin(filtros) {
+  return pedir(`/api/admin/reservas${consulta(filtros)}`);
+}
+
+export function obtenerReservaAdmin(id) {
+  return pedir(`/api/admin/reservas/${id}`);
 }
 
 export function obtenerExcursion(id) {
