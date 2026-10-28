@@ -221,7 +221,10 @@ public class ReservaService {
         Set<Long> conAprobado = new HashSet<>();
         for (Pago p : pagos) {
             Long id = p.getReserva().getIdReserva();
-            if (p.getEstadoPago() == EstadoPago.APROBADO || p.getEstadoPago() == EstadoPago.DEVUELTO) {
+            if (p.getModoPago() == ModoPago.REINTEGRO && p.getEstadoPago() == EstadoPago.APROBADO) {
+                // CU-27: lo abonado ya se reintegró
+                estados.put(id, EstadoPago.DEVUELTO.name());
+            } else if (p.getEstadoPago() == EstadoPago.APROBADO || p.getEstadoPago() == EstadoPago.DEVUELTO) {
                 conAprobado.add(id);
                 estados.put(id, EstadoPago.APROBADO.name());
             } else if (!conAprobado.contains(id)) {
@@ -628,6 +631,7 @@ public class ReservaService {
             case SENA -> sena(reserva.getMontoTotal());
             case TOTAL -> reserva.getMontoTotal();
             case SALDO -> reserva.getSaldoPendiente();
+            case REINTEGRO -> throw ReglaNegocioException.enCampo("modoPago", "Ese modo de pago no está disponible para esta reserva.");
         };
 
         // Paso 5: el pago se registra "Pendiente" antes de invocar a la pasarela.
