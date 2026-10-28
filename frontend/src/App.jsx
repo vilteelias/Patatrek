@@ -8,6 +8,7 @@ import RegistrarmePagina from './paginas/auth/RegistrarmePagina.jsx';
 import ListaExcursiones from './paginas/ListaExcursiones.jsx';
 import AdminExcursiones from './paginas/admin/AdminExcursiones.jsx';
 import FormularioExcursion from './paginas/admin/FormularioExcursion.jsx';
+import AdminEquipamientoPagina from './paginas/admin/AdminEquipamientoPagina.jsx';
 import AdminReservasPagina from './paginas/admin/AdminReservasPagina.jsx';
 import AdminValoracionesPagina from './paginas/admin/AdminValoracionesPagina.jsx';
 import Proximamente from './paginas/Proximamente.jsx';
@@ -25,7 +26,7 @@ import MisReservasPagina from './paginas/cliente/MisReservasPagina.jsx';
 import ValorarPagina from './paginas/cliente/ValorarPagina.jsx';
 
 // Módulos del Administrador ya implementados. Se agregan acá a medida que se terminan.
-const MODULOS_DISPONIBLES = ['/admin/excursiones', '/admin/reservas', '/admin/valoraciones'];
+const MODULOS_DISPONIBLES = ['/admin/excursiones', '/admin/reservas', '/admin/equipamiento', '/admin/valoraciones'];
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
         <Route path="excursiones" element={<AdminExcursiones />} />
         <Route path="excursiones/nueva" element={<FormularioExcursion />} />
         <Route path="excursiones/:id/editar" element={<FormularioExcursion />} />
+        <Route path="equipamiento" element={<AdminEquipamientoPagina />} />
         <Route path="reservas" element={<AdminReservasPagina />} />
         <Route path="valoraciones" element={<AdminValoracionesPagina />} />
         <Route path="*" element={<Proximamente />} />
