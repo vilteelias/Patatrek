@@ -2,7 +2,6 @@ package com.patatrek.backend.certificado;
 
 import com.patatrek.backend.reserva.Participante;
 import jakarta.persistence.*;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -11,76 +10,130 @@ import java.time.LocalDateTime;
  *                    + fecha_vencimiento + estado_certificado + motivo_rechazo + intentos_envio + maximo_intentos
  * La carga (CU-24) y la validación (CU-25) llegan en sus módulos; acá se usa para el control de asistencia.
  */
+
 @Entity
 @Table(name = "certificado_medico")
 public class CertificadoMedico {
 
+    // atributo estático para el límite de intentos (no se guarda en la base de datos)
+    public static final int MAX_INTENTOS = 2;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_certificado_medico")
     private Long idCertificadoMedico;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_participante", nullable = false)
-    private Participante participante;
+    @Column(name = "path_archivo_adjunto")
+    private String pathArchivoAdjunto;
 
-    /** Ruta del archivo (máximo 5 MB, RNF-05). */
-    @Column(nullable = false, length = 255)
-    private String archivoAdjunto;
-
-    @Column(nullable = false)
+    @Column(name = "fecha_subida")
     private LocalDateTime fechaSubida;
 
-    @Column(nullable = false)
+    @Column(name = "fecha_vencimiento")
     private LocalDate fechaVencimiento;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 25)
+    @Column(name = "estado_certificado")
     private EstadoCertificado estadoCertificado;
 
-    @Column(length = 500)
+    @Column(name = "motivo_rechazo")
     private String motivoRechazo;
 
-    @Column(nullable = false)
-    private int intentosEnvio = 1;
+    @Column(name = "intentos_envio")
+    private Integer intentosEnvio;
 
-    @Column(nullable = false)
-    private int maximoIntentos = 3;
 
-    public CertificadoMedico() {}
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_participante")
+    private Participante participante;
 
-    public CertificadoMedico(Participante participante, String archivoAdjunto, LocalDateTime fechaSubida,
+    // Constructor sin argumentos (JPA)
+    public CertificadoMedico() {
+        this.fechaSubida = LocalDateTime.now();
+        this.intentosEnvio = 0;
+    }
+
+    public CertificadoMedico(Participante participante, String pathArchivoAdjunto, LocalDateTime fechaSubida,
                              LocalDate fechaVencimiento, EstadoCertificado estadoCertificado) {
         this.participante = participante;
-        this.archivoAdjunto = archivoAdjunto;
+        this.pathArchivoAdjunto = pathArchivoAdjunto;
         this.fechaSubida = fechaSubida;
         this.fechaVencimiento = fechaVencimiento;
         this.estadoCertificado = estadoCertificado;
     }
 
-    public Long getIdCertificadoMedico() { return idCertificadoMedico; }
-    public void setIdCertificadoMedico(Long idCertificadoMedico) { this.idCertificadoMedico = idCertificadoMedico; }
+    // Lógica de Negocio
+    public void incrementarIntentos() {
+        if (this.intentosEnvio == null) {
+            this.intentosEnvio = 0;
+        }
+        this.intentosEnvio++;
+    }
 
-    public Participante getParticipante() { return participante; }
-    public void setParticipante(Participante participante) { this.participante = participante; }
+    public boolean alcanzoMaximoIntentos() {
+        return this.intentosEnvio != null && this.intentosEnvio >= MAX_INTENTOS;
+    }
 
-    public String getArchivoAdjunto() { return archivoAdjunto; }
-    public void setArchivoAdjunto(String archivoAdjunto) { this.archivoAdjunto = archivoAdjunto; }
+    // Getters y Setters
+    public Long getIdCertificadoMedico() {
+        return idCertificadoMedico;
+    }
 
-    public LocalDateTime getFechaSubida() { return fechaSubida; }
-    public void setFechaSubida(LocalDateTime fechaSubida) { this.fechaSubida = fechaSubida; }
+    public void setIdCertificadoMedico(Long idCertificadoMedico) {
+        this.idCertificadoMedico = idCertificadoMedico;
+    }
 
-    public LocalDate getFechaVencimiento() { return fechaVencimiento; }
-    public void setFechaVencimiento(LocalDate fechaVencimiento) { this.fechaVencimiento = fechaVencimiento; }
+    public String getPathArchivoAdjunto() {
+        return pathArchivoAdjunto;
+    }
 
-    public EstadoCertificado getEstadoCertificado() { return estadoCertificado; }
+    public void setPathArchivoAdjunto(String pathArchivoAdjunto) {
+        this.pathArchivoAdjunto = pathArchivoAdjunto;
+    }
+
+    public LocalDateTime getFechaSubida() {
+        return fechaSubida;
+    }
+
+    public void setFechaSubida(LocalDateTime fechaSubida) {
+        this.fechaSubida = fechaSubida;
+    }
+
+    public LocalDate getFechaVencimiento() {
+        return fechaVencimiento;
+    }
+
+    public void setFechaVencimiento(LocalDate fechaVencimiento) {
+        this.fechaVencimiento = fechaVencimiento;
+    }
+
+    public EstadoCertificado getEstadoCertificado() {
+        return estadoCertificado;
+    }
+
     public void setEstadoCertificado(EstadoCertificado estadoCertificado) { this.estadoCertificado = estadoCertificado; }
 
-    public String getMotivoRechazo() { return motivoRechazo; }
-    public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
+    public String getMotivoRechazo() {
+        return motivoRechazo;
+    }
 
-    public int getIntentosEnvio() { return intentosEnvio; }
-    public void setIntentosEnvio(int intentosEnvio) { this.intentosEnvio = intentosEnvio; }
+    public void setMotivoRechazo(String motivoRechazo) {
+        this.motivoRechazo = motivoRechazo;
+    }
 
-    public int getMaximoIntentos() { return maximoIntentos; }
-    public void setMaximoIntentos(int maximoIntentos) { this.maximoIntentos = maximoIntentos; }
+    public Integer getIntentosEnvio() {
+        return intentosEnvio;
+    }
+
+    public void setIntentosEnvio(Integer intentosEnvio) {
+        this.intentosEnvio = intentosEnvio;
+    }
+
+    public Participante getParticipante() {
+        return participante;
+    }
+
+    public void setParticipante(Participante participante) {
+        this.participante = participante;
+    }
 }

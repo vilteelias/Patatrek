@@ -1,7 +1,4 @@
-package com.patatrek.backend.certificadoMedico.dto;
-
-import com.patatrek.backend.certificadoMedico.modelo.EstadoCertificado;
-import com.patatrek.backend.certificadoMedico.modelo.CertificadoMedico;
+package com.patatrek.backend.certificado;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

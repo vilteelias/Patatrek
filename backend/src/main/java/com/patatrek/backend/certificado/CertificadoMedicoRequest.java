@@ -1,6 +1,5 @@
-package com.patatrek.backend.certificadoMedico.dto;
+package com.patatrek.backend.certificado;
 
-import com.patatrek.backend.certificadoMedico.modelo.EstadoCertificado;
 import java.time.LocalDate;
 
 //lo que envia el cliente a traves del formulario

@@ -1,8 +1,5 @@
-package com.patatrek.backend.certificadoMedico.controlador;
+package com.patatrek.backend.certificado;
 
-import com.patatrek.backend.certificadoMedico.dto.CertificadoMedicoResponse;
-import com.patatrek.backend.certificadoMedico.dto.RechazoRequest;
-import com.patatrek.backend.certificadoMedico.servicio.CertificadoMedicoService;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;

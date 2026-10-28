@@ -1,8 +1,5 @@
-package com.patatrek.backend.certificadoMedico.servicio;
+package com.patatrek.backend.certificado;
 
-import com.patatrek.backend.certificadoMedico.modelo.CertificadoMedico;
-import com.patatrek.backend.certificadoMedico.modelo.EstadoCertificado;
-import com.patatrek.backend.certificadoMedico.repositorio.CertificadoMedicoRepository;
 import com.patatrek.backend.archivo.servicio.ArchivoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
