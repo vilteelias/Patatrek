@@ -1,7 +1,7 @@
 // Layout del Administrador. Generado con v0 y adaptado a React + Vite (react-router-dom).
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { CalendarDays, FileCheck, Menu, Mountain, Package, RefreshCcw, Star, Ticket, X } from 'lucide-react';
+import { CalendarDays, FileCheck, LogOut, Menu, Mountain, Package, RefreshCcw, Star, Ticket, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
 
@@ -18,8 +18,10 @@ const ITEMS_MENU = [
 /**
  * modulosDisponibles: rutas de los módulos ya implementados (los demás se ven atenuados con "Próximamente").
  * children: contenido de la página (en App.jsx se pasa <Outlet />).
+ * usuario: { nombre, apellido, correoElectronico } del administrador que inició sesión.
+ * onCerrarSesion: CU-03 Cerrar sesión.
  */
-export function AdminLayout({ modulosDisponibles, children }) {
+export function AdminLayout({ modulosDisponibles, usuario, onCerrarSesion, children }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
 
@@ -59,7 +61,7 @@ export function AdminLayout({ modulosDisponibles, children }) {
 
       {/* Menú lateral fijo en escritorio */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[250px] lg:block">
-        <PanelMenu modulosDisponibles={modulosDisponibles} />
+        <PanelMenu modulosDisponibles={modulosDisponibles} usuario={usuario} onCerrarSesion={onCerrarSesion} />
       </aside>
 
       {/* Panel lateral en celular */}
@@ -78,7 +80,12 @@ export function AdminLayout({ modulosDisponibles, children }) {
             aria-label="Menú de administración"
             className="absolute inset-y-0 left-0 w-[min(280px,85vw)] animate-in slide-in-from-left duration-200"
           >
-            <PanelMenu modulosDisponibles={modulosDisponibles} onCerrar={() => setMenuAbierto(false)} />
+            <PanelMenu
+              modulosDisponibles={modulosDisponibles}
+              usuario={usuario}
+              onCerrarSesion={onCerrarSesion}
+              onCerrar={() => setMenuAbierto(false)}
+            />
           </div>
         </div>
       )}
@@ -88,7 +95,8 @@ export function AdminLayout({ modulosDisponibles, children }) {
   );
 }
 
-function PanelMenu({ modulosDisponibles, onCerrar }) {
+function PanelMenu({ modulosDisponibles, usuario, onCerrarSesion, onCerrar }) {
+  const iniciales = usuario ? `${usuario.nombre?.[0] ?? ''}${usuario.apellido?.[0] ?? ''}`.toUpperCase() : 'AD';
   return (
     <div className="relative flex h-full flex-col bg-sidebar text-sidebar-foreground">
       {onCerrar && (
@@ -123,12 +131,27 @@ function PanelMenu({ modulosDisponibles, onCerrar }) {
           className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning text-sm font-semibold text-white"
           aria-hidden="true"
         >
-          AD
+          {iniciales}
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">Administrador</p>
-          <p className="truncate text-xs text-sidebar-foreground/80">admin@patatrek.com</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">
+            {usuario ? `${usuario.apellido}, ${usuario.nombre}` : 'Administrador'}
+          </p>
+          <p className="truncate text-xs text-sidebar-foreground/80">
+            {usuario ? usuario.correoElectronico : 'admin@patatrek.com'}
+          </p>
         </div>
+        {onCerrarSesion && (
+          <button
+            type="button"
+            onClick={onCerrarSesion}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-sidebar-accent-foreground"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+          >
+            <LogOut className="size-[18px]" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

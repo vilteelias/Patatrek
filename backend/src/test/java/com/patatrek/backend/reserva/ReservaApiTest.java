@@ -260,14 +260,14 @@ class ReservaApiTest {
                 .andExpect(jsonPath("$[0].idReserva").value(idReserva))
                 .andExpect(jsonPath("$[0].estadoPago").value("PENDIENTE"));
 
-        mvc.perform(get("/api/cliente/reservas").param("estado", "CONFIRMADA"))
+        mvc.perform(get("/api/cliente/reservas").param("estado", "SENADA"))
                 .andExpect(jsonPath("$", hasSize(0)));
 
         // Administrador: todas las reservas (las de ejemplo + la nueva), filtrando por DNI y por excursión
         mvc.perform(get("/api/admin/reservas"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()", greaterThan(5)));
-        mvc.perform(get("/api/admin/reservas").param("dni", "38555777"))
+        mvc.perform(get("/api/admin/reservas").param("dni", "38555777").param("estado", "PENDIENTE_PAGO"))
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].cliente").value("Ibarra, Sofía"));
         mvc.perform(get("/api/admin/reservas").param("excursion", "perito").param("estado", "CONFIRMADA"))
