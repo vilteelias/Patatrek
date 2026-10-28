@@ -40,6 +40,14 @@ public class ManejadorErrores {
                 "El valor de \"" + ex.getName() + "\" no es válido.", Map.of(ex.getName(), "Valor no válido.")));
     }
 
+    /** Falta un parámetro obligatorio en la URL (ej. ?reserva=…&dni=…). */
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<RespuestaError> parametroFaltante(
+            org.springframework.web.bind.MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(
+                "Falta el dato \"" + ex.getParameterName() + "\".", Map.of(ex.getParameterName(), "Dato obligatorio.")));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> jsonInvalido(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
@@ -50,6 +58,11 @@ public class ManejadorErrores {
     public ResponseEntity<RespuestaError> reglaNegocio(ReglaNegocioException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new RespuestaError(ex.getMessage(), ex.getErrores()));
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<RespuestaError> credencialesInvalidas(CredencialesInvalidasException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new RespuestaError(ex.getMessage(), Map.of()));
     }
 
     @ExceptionHandler(AccesoDenegadoException.class)

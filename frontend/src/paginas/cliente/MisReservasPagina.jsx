@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Star } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import {
   pesos,
 } from '@/components/reserva/formato';
 import { listarMisReservas } from '@/api/reservas';
+import { listarValoracionesPendientes } from '@/api/valoraciones';
 import { cn } from '@/lib/utils';
 import { Aviso } from './Estados';
 
@@ -37,6 +38,14 @@ export default function MisReservasPagina() {
   const [reservas, setReservas] = useState(null);
   const [error, setError] = useState('');
   const [errorFiltro, setErrorFiltro] = useState('');
+  const [pendientes, setPendientes] = useState([]);
+
+  // CU-28: salidas finalizadas que el cliente todavía no valoró
+  useEffect(() => {
+    listarValoracionesPendientes()
+      .then(setPendientes)
+      .catch(() => setPendientes([]));
+  }, []);
 
   // El aviso (por ejemplo "Cancelaste la reserva #12") no reaparece al recargar.
   useEffect(() => {
@@ -80,6 +89,33 @@ export default function MisReservasPagina() {
             Cerrar
           </button>
         </div>
+      )}
+
+      {pendientes.length > 0 && (
+        <section aria-labelledby="titulo-valoraciones" className="rounded-2xl border border-warning/30 bg-secondary px-5 py-4">
+          <h2 id="titulo-valoraciones" className="flex items-center gap-2 font-semibold text-secondary-foreground">
+            <Star className="size-4 fill-warning text-warning" aria-hidden="true" />
+            Valoraciones pendientes
+          </h2>
+          <ul className="mt-2 flex flex-col divide-y divide-border">
+            {pendientes.map((v) => (
+              <li key={`${v.idReserva}-${v.dni}`} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-foreground">
+                  ¿Cómo fue <strong>{v.excursion}</strong>?{' '}
+                  <span className="text-muted-foreground">
+                    Salida del {formatearRangoFechas(v.fechaInicio, v.fechaFinalizacion)}
+                  </span>
+                </span>
+                <Link
+                  to={`/valorar?reserva=${v.idReserva}&dni=${v.dni}`}
+                  className={cn(buttonVariants(), 'h-9 px-4')}
+                >
+                  Valorar
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <section aria-label="Filtros" className="rounded-2xl border border-border bg-card px-5 py-4">

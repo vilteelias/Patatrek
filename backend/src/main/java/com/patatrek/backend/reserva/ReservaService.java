@@ -1,7 +1,10 @@
 package com.patatrek.backend.reserva;
 
+import com.patatrek.backend.auth.Rol;
+import com.patatrek.backend.auth.UsuarioActual;
 import com.patatrek.backend.equipamiento.Equipamiento;
 import com.patatrek.backend.excepcion.AccesoDenegadoException;
+import com.patatrek.backend.excepcion.CredencialesInvalidasException;
 import com.patatrek.backend.excepcion.DatosInvalidosException;
 import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
@@ -77,6 +80,8 @@ public class ReservaService {
     private final NotificacionService notificacionService;
     private final int minutosRetencion;
     private final String correoClienteDemo;
+    private final UsuarioActual usuarioActual;
+    private final boolean exigirLogin;
 
     public ReservaService(EntityManager em,
                           ReservaRepository reservaRepository,
@@ -88,7 +93,9 @@ public class ReservaService {
                           PasarelaPagosSimulada pasarela,
                           NotificacionService notificacionService,
                           @Value("${patatrek.minutos-retencion:10}") int minutosRetencion,
-                          @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo) {
+                          @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo,
+                          UsuarioActual usuarioActual,
+                          @Value("${patatrek.seguridad.exigir-login:false}") boolean exigirLogin) {
         this.em = em;
         this.reservaRepository = reservaRepository;
         this.participanteRepository = participanteRepository;
@@ -100,14 +107,28 @@ public class ReservaService {
         this.notificacionService = notificacionService;
         this.minutosRetencion = minutosRetencion;
         this.correoClienteDemo = correoClienteDemo;
+        this.usuarioActual = usuarioActual;
+        this.exigirLogin = exigirLogin;
     }
 
     // =====================================================================
-    //  Cliente actual (TEMPORAL hasta el módulo de Autenticación)
+    //  Cliente actual
     // =====================================================================
 
+    /**
+     * El cliente que inició sesión. Si nadie inició sesión como cliente y todavía no se exige login
+     * (patatrek.seguridad.exigir-login=false), se usa la clienta de demostración.
+     */
     @Transactional(readOnly = true)
     public Cliente clienteActual() {
+        var sesion = usuarioActual.conRol(Rol.CLIENTE);
+        if (sesion.isPresent()) {
+            return clienteRepository.findById(sesion.get().id())
+                    .orElseThrow(() -> new CredencialesInvalidasException("Tu sesión ya no es válida. Iniciá sesión de nuevo."));
+        }
+        if (exigirLogin) {
+            throw new CredencialesInvalidasException("Iniciá sesión como cliente para continuar.");
+        }
         return clienteRepository.findByCorreoElectronicoIgnoreCase(correoClienteDemo)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "No existe el cliente de demostración " + correoClienteDemo + "."));
