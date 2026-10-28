@@ -18,4 +18,10 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     /** Catálogo general del Administrador (CU-20), de la más nueva a la más vieja. */
     @EntityGraph(attributePaths = {"salida", "salida.excursion", "cliente"})
     List<Reserva> findAllByOrderByFechaHoraDesc();
+
+    /** CU-27: reservas "Pendiente de devolución" y "Devuelta". */
+    @EntityGraph(attributePaths = {"salida", "salida.excursion", "cliente"})
+    List<Reserva> findByEstadoReservaInOrderByIdReservaAsc(java.util.Collection<EstadoReserva> estados);
+
+    long countByEstadoReservaIn(java.util.Collection<EstadoReserva> estados);
 }

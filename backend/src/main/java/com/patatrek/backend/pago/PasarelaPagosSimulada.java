@@ -23,4 +23,14 @@ public class PasarelaPagosSimulada {
         }
         return new Respuesta(false, nroTransaccion, "La entidad emisora rechazó el pago (fondos insuficientes).");
     }
+
+    /**
+     * CU-27 pasos 5-6: solicitud de reembolso. PataTrek envía el identificador de la transacción original
+     * y el monto a reintegrar; la pasarela lo devuelve al mismo medio con el que pagó el cliente
+     * (PataTrek tampoco conoce ese medio) y responde con el número de transacción de reintegro.
+     */
+    public Respuesta reintegrar(Pago reintegro, String nroTransaccionOriginal) {
+        String nroTransaccion = "REI-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return new Respuesta(true, nroTransaccion, null);
+    }
 }

@@ -20,13 +20,13 @@ function BarraStock({ item }) {
   const ancho = (n) => `${(n / total) * 100}%`;
   return (
     <div
-      className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
+      className="flex h-2.5 w-full min-w-[140px] overflow-hidden rounded-full bg-muted"
       role="img"
       aria-label={`${item.prestado} prestados, ${item.retenido} retenidos y ${item.disponible} disponibles de ${item.stockTotal}`}
     >
-      <span className="h-full bg-info-foreground/70" style={{ width: ancho(item.prestado) }} />
-      <span className="h-full bg-warning" style={{ width: ancho(item.retenido) }} />
-      <span className="h-full bg-primary" style={{ width: ancho(item.disponible) }} />
+      <span className="block h-full bg-info-foreground/70" style={{ width: ancho(item.prestado) }} />
+      <span className="block h-full bg-warning" style={{ width: ancho(item.retenido) }} />
+      <span className="block h-full bg-primary" style={{ width: ancho(item.disponible) }} />
     </div>
   );
 }
@@ -34,7 +34,7 @@ function BarraStock({ item }) {
 function Referencia({ clase, children }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn('size-2.5 rounded-full', clase)} aria-hidden="true" />
+      <span className={cn('inline-block size-2.5 shrink-0 rounded-full', clase)} aria-hidden="true" />
       {children}
     </span>
   );
@@ -152,7 +152,7 @@ export default function AdminEquipamientoPagina() {
                   <th className="px-4 py-3 text-right font-medium">Retenido</th>
                   <th className="px-4 py-3 text-right font-medium">Prestado</th>
                   <th className="px-4 py-3 text-right font-medium">Disponible</th>
-                  <th className="w-[28%] px-4 py-3 font-medium">
+                  <th className="w-[24%] min-w-[172px] px-4 py-3 font-medium">
                     <span className="sr-only">Gráfico</span>
                   </th>
                 </tr>

@@ -20,7 +20,7 @@ export function fechaHora(valor) {
   return `${d}/${m}/${a} ${h.slice(0, 5)}`.trim();
 }
 
-export const MODO_PAGO = { SENA: 'Seña (50%)', TOTAL: 'Pago completo', SALDO: 'Saldo restante' };
+export const MODO_PAGO = { SENA: 'Seña (50%)', TOTAL: 'Pago completo', SALDO: 'Saldo restante', REINTEGRO: 'Reintegro' };
 export const ESTADO_PAGO = { PENDIENTE: 'Pendiente', APROBADO: 'Aprobado', RECHAZADO: 'Rechazado', DEVUELTO: 'Devuelto' };
 export const ALOJAMIENTO = { REFUGIO: 'Refugio', CARPA_PROPIA: 'Carpa propia' };
 
