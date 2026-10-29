@@ -60,6 +60,12 @@ public class CertificadoMedico {
         this.fechaSubida = fechaSubida;
         this.fechaVencimiento = fechaVencimiento;
         this.estadoCertificado = estadoCertificado;
+        // Coherente con el estado: un certificado ya cargado tiene al menos 1 envío; el rechazo definitivo, 2
+        this.intentosEnvio = switch (estadoCertificado) {
+            case PENDIENTE -> 0;
+            case RECHAZADO_DEFINITIVO -> MAX_INTENTOS;
+            default -> 1;
+        };
     }
 
     // Lógica de Negocio

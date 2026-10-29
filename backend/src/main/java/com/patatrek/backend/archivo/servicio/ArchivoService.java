@@ -53,6 +53,15 @@ public class ArchivoService {
         return archivo;
     }
 
+    /** Borra un archivo guardado (por ejemplo, el certificado rechazado que se reemplaza). No falla si no existe. */
+    public void eliminar(String pathRelativo) {
+        try {
+            Files.deleteIfExists(obtener(pathRelativo));
+        } catch (IOException e) {
+            // un archivo viejo que no se pudo borrar no debe frenar la operación
+        }
+    }
+
     private String extension(String nombreOriginal) {
         if (nombreOriginal == null || !nombreOriginal.contains(".")) return "";
         return nombreOriginal.substring(nombreOriginal.lastIndexOf('.')).toLowerCase();
