@@ -23,4 +23,10 @@ public interface ParticipanteRepository extends JpaRepository<Participante, Long
     /** CU-28 (panel del cliente): participaciones de una persona, por DNI, en salidas de un estado dado. */
     @EntityGraph(attributePaths = {"reserva", "reserva.salida", "reserva.salida.excursion"})
     List<Participante> findByDniAndReservaSalidaEstadoSalida(String dni, com.patatrek.backend.salida.EstadoSalida estado);
+
+    /** Participantes de una reserva (CU-24: certificados del Cliente). */
+    List<Participante> findByReservaIdReservaOrderByApellidoAscNombreAsc(Long idReserva);
+
+    /** Acceso del Participante: ID de reserva + DNI (CU-19, CU-24). El DNI es único dentro de cada reserva. */
+    Optional<Participante> findByReservaIdReservaAndDni(Long idReserva, String dni);
 }

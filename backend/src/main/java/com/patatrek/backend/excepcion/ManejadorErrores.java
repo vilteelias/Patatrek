@@ -80,6 +80,12 @@ public class ManejadorErrores {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<RespuestaError> archivoGrande(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(new RespuestaError("La imagen no puede superar los 5 MB.", Map.of()));
+                .body(new RespuestaError("El archivo no puede superar los 5 MB.", Map.of()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<RespuestaError> argumentoIlegal(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+                .body(new RespuestaError(ex.getMessage(), Map.of()));
     }
 }
