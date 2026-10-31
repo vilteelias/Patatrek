@@ -153,6 +153,15 @@ export default function ReservaDetallePagina() {
             ) : (
               <span />
             )}
+            {['SENADA', 'CONFIRMADA'].includes(reserva.estadoReserva) && (
+                <Link
+                    to={`/reservas/${reserva.idReserva}/mi-certificado`}
+                    className={cn(buttonVariants({ variant: 'outline' }), 'h-11 border-primary/40 text-primary hover:bg-primary/10')}
+                >
+                  <FileText aria-hidden="true" className="size-4 mr-2" />
+                  Cargar Certificados Médicos
+                </Link>
+            )}
             {reserva.cancelable && (
               <Button
                 type="button"

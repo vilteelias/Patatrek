@@ -34,6 +34,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * CU-24 Cargar certificado médico (Cliente / Participante) y CU-25 Validar certificados médicos (Administrador).
@@ -72,9 +74,35 @@ public class CertificadoMedicoService {
     // =====================================================================================
 
     /**
+     * Crea el certificado en estado PENDIENTE de cada participante de la reserva, si la excursión exige certificado.
+     * Se invoca al registrar la reserva (CU-18), en la misma transacción y con los participantes ya guardados.
+     * No hace nada si la excursión no lo requiere, y no duplica los certificados que ya existan.
+     */
+    @Transactional
+    public void crearPendientes(Reserva reserva) {
+        if (!reserva.getSalida().getExcursion().isRequiereCertificado()) {
+            return;
+        }
+        List<Participante> participantes =
+                participanteRepository.findByReservaIdReservaOrderByApellidoAscNombreAsc(reserva.getIdReserva());
+        if (participantes.isEmpty()) {
+            return;
+        }
+        List<Long> ids = participantes.stream().map(Participante::getIdParticipante).toList();
+        Set<Long> conCertificado = certificadoRepository.findByParticipanteIdParticipanteIn(ids).stream()
+                .map(c -> c.getParticipante().getIdParticipante())
+                .collect(Collectors.toSet());
+        for (Participante p : participantes) {
+            if (!conCertificado.contains(p.getIdParticipante())) {
+                crearPendiente(p);
+            }
+        }
+    }
+
+    /**
      * Certificados de una reserva. Sin dni (Cliente): todos los participantes. Con dni (Participante): solo el suyo.
-     * Si un participante todavía no tiene certificado, se crea en estado PENDIENTE (así lo indica el diagrama de CU-24).
-     * Por eso no es de solo lectura.
+     * Los certificados PENDIENTE se crean al registrar la reserva (crearPendientes). Acá se vuelve a invocar solo como
+     * respaldo para reservas anteriores a ese cambio; cuando todas estén migradas puede quitarse y pasar a solo lectura.
      */
     @Transactional
     public CertificadosReservaResponse certificadosDeReserva(Long idReserva, String dni) {
@@ -92,6 +120,8 @@ public class CertificadoMedicoService {
                     .orElseThrow(() -> new AccesoDenegadoException("Los datos ingresados no son correctos."));
         }
 
+        crearPendientes(reserva); // respaldo (ver arriba)
+
         List<Long> ids = participantes.stream().map(Participante::getIdParticipante).toList();
         Map<Long, CertificadoMedico> existentes = new HashMap<>();
         for (CertificadoMedico c : certificadoRepository.findByParticipanteIdParticipanteIn(ids)) {
@@ -102,9 +132,6 @@ public class CertificadoMedicoService {
         List<CertificadoParticipanteResponse> filas = new ArrayList<>();
         for (Participante p : participantes) {
             CertificadoMedico c = existentes.get(p.getIdParticipante());
-            if (c == null) {
-                c = crearPendiente(p);
-            }
             filas.add(CertificadoParticipanteResponse.de(c, p, p.getDni().equals(dniTitular)));
         }
         return new CertificadosReservaResponse(horarioLimite(reserva.getSalida()), filas);

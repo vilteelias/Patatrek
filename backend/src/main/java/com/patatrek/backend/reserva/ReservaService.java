@@ -2,6 +2,7 @@ package com.patatrek.backend.reserva;
 
 import com.patatrek.backend.auth.Rol;
 import com.patatrek.backend.auth.UsuarioActual;
+import com.patatrek.backend.certificado.CertificadoMedicoService;
 import com.patatrek.backend.equipamiento.Equipamiento;
 import com.patatrek.backend.excepcion.AccesoDenegadoException;
 import com.patatrek.backend.excepcion.CredencialesInvalidasException;
@@ -76,6 +77,7 @@ public class ReservaService {
     private final AsignacionRefugioRepository asignacionRefugioRepository;
     private final PagoRepository pagoRepository;
     private final ClienteRepository clienteRepository;
+    private final CertificadoMedicoService certificadoMedicoService;
     private final PasarelaPagosSimulada pasarela;
     private final NotificacionService notificacionService;
     private final int minutosRetencion;
@@ -92,10 +94,12 @@ public class ReservaService {
                           ClienteRepository clienteRepository,
                           PasarelaPagosSimulada pasarela,
                           NotificacionService notificacionService,
+                          CertificadoMedicoService certificadoMedicoService,
                           @Value("${patatrek.minutos-retencion:10}") int minutosRetencion,
                           @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo,
                           UsuarioActual usuarioActual,
-                          @Value("${patatrek.seguridad.exigir-login:false}") boolean exigirLogin) {
+                          @Value("${patatrek.seguridad.exigir-login:false}") boolean exigirLogin
+                          ) {
         this.em = em;
         this.reservaRepository = reservaRepository;
         this.participanteRepository = participanteRepository;
@@ -105,6 +109,7 @@ public class ReservaService {
         this.clienteRepository = clienteRepository;
         this.pasarela = pasarela;
         this.notificacionService = notificacionService;
+        this.certificadoMedicoService = certificadoMedicoService;
         this.minutosRetencion = minutosRetencion;
         this.correoClienteDemo = correoClienteDemo;
         this.usuarioActual = usuarioActual;
@@ -479,6 +484,9 @@ public class ReservaService {
             participanteRepository.save(new Participante(reserva, p.dni().trim(), p.nombre().trim(),
                     p.apellido().trim(), p.correoElectronico().trim(), p.nroTelefono().trim(), p.fechaNacimiento()));
         }
+
+        // Crea los certificados médicos en estado PENDIENTE si la excursión los requiere
+        certificadoMedicoService.crearPendientes(reserva);
 
         // ---------- Retención de recursos ----------
         salida.setCuposRetenidos(salida.getCuposRetenidos() + cantidad);

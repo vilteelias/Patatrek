@@ -27,6 +27,4 @@ public interface ParticipanteRepository extends JpaRepository<Participante, Long
     /** Participantes de una reserva (CU-24: certificados del Cliente). */
     List<Participante> findByReservaIdReservaOrderByApellidoAscNombreAsc(Long idReserva);
 
-    /** Acceso del Participante: ID de reserva + DNI (CU-19, CU-24). El DNI es único dentro de cada reserva. */
-    Optional<Participante> findByReservaIdReservaAndDni(Long idReserva, String dni);
 }
