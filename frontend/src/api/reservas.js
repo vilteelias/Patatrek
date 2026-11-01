@@ -61,11 +61,17 @@ export function obtenerReserva(id) {
  * CU-26. No se envía NINGÚN dato de tarjeta: solo el modo de pago y,
  * como la pasarela es simulada, la respuesta que queremos que devuelva.
  */
-export function pagarReserva(id, modoPago, aprobar) {
-  return pedir(`/api/reservas/${id}/pagos`, { metodo: 'POST', cuerpo: { modoPago, aprobar } });
+/** CU-26. La pasarela simulada decide sola si aprueba o rechaza el pago. */
+export function pagarReserva(id, modoPago) {
+  return pedir(`/api/reservas/${id}/pagos`, { metodo: 'POST', cuerpo: { modoPago } });
 }
 
 /** Solo para la demostración: vence la retención sin esperar los 10 minutos. */
 export function simularVencimiento(id) {
   return pedir(`/api/reservas/${id}/simular-vencimiento`, { metodo: 'POST' });
+}
+
+/** CU-30: ejecuta ahora la cancelación automática que el temporizador hace todos los días. */
+export function ejecutarCancelacionAutomatica() {
+  return pedir('/api/admin/reservas/cancelacion-automatica', { metodo: 'POST' });
 }

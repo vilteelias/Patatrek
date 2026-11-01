@@ -32,9 +32,9 @@ export default function PagoPagina() {
   if (error) return <Aviso titulo="No pudimos cargar la reserva" mensaje={error} volverA="/mis-reservas" textoVolver="Mis reservas" />;
   if (!reserva) return <Cargando texto="Cargando reserva…" />;
 
-  const pagar = (modo, aprobar) => {
+  const pagar = (modo) => {
     setErrorPago('');
-    return pagarReserva(reserva.idReserva, modo, aprobar);
+    return pagarReserva(reserva.idReserva, modo);
   };
   const terminarPago = (resultado) => navigate(`/reservas/${reserva.idReserva}`, { state: { resultado } });
 

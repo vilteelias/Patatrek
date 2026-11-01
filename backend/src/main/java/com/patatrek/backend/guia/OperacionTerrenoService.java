@@ -13,6 +13,8 @@ import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
 import com.patatrek.backend.excursion.Excursion;
 import com.patatrek.backend.guia.dto.*;
+import com.patatrek.backend.notificacion.Correo;
+import com.patatrek.backend.notificacion.FormatoCorreo;
 import com.patatrek.backend.notificacion.NotificacionService;
 import com.patatrek.backend.reserva.*;
 import com.patatrek.backend.salida.*;
@@ -252,13 +254,19 @@ public class OperacionTerrenoService {
 
         String nombreExcursion = salida.getExcursion().getNombre();
         for (Participante p : habilitados) {
-            notificacionService.enviar(p.getCorreoElectronico(),
-                    "¿Cómo estuvo tu excursión " + nombreExcursion + "?",
-                    "Hola " + p.getNombre() + ":\n\n"
-                            + "Gracias por participar de la excursión " + nombreExcursion + " con PataTrek.\n"
-                            + "Nos ayudaría mucho que la valores (CU-28) desde este enlace:\n"
-                            + urlFrontend + "/valorar?reserva=" + p.getReserva().getIdReserva() + "&dni=" + p.getDni()
-                            + "\n\n¡Te esperamos en la próxima salida!\nEquipo PataTrek");
+            // CU-16 paso 5 / RF-14: solicitud de valoración con el enlace al formulario (CU-28)
+            notificacionService.enviar(Correo.para(p.getCorreoElectronico())
+                    .asunto("PataTrek — ¿Cómo estuvo tu excursión " + nombreExcursion + "?")
+                    .titulo("¿Cómo estuvo tu excursión?")
+                    .saludo("Hola " + p.getNombre() + ":")
+                    .parrafo("Gracias por participar de " + nombreExcursion + " con PataTrek. "
+                            + "Nos ayudaría mucho que nos cuentes cómo te fue: elegí de 1 a 5 estrellas y, si querés, dejanos un comentario.")
+                    .dato("Excursión", nombreExcursion)
+                    .dato("Salida", FormatoCorreo.salida(salida.getFechaInicio(), salida.getFechaFinalizacion(), salida.getHoraInicio()))
+                    .dato("Reserva", "#" + p.getReserva().getIdReserva())
+                    .boton("Valorar la excursión", urlFrontend + "/valorar?reserva=" + p.getReserva().getIdReserva() + "&dni=" + p.getDni())
+                    .nota("Solo se puede registrar una valoración por participante. ¡Te esperamos en la próxima salida!")
+                    .build());
         }
 
         return new FinalizacionResponse(habilitados.size(), armarRespuestas(List.of(asignacion)).get(0));

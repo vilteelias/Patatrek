@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle2, CreditCard, Info, XCircle } from 'lucide-react';
+import { CheckCircle2, CreditCard, FileText, Info, XCircle } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { CancelarReservaDialog } from '@/components/reserva/cancelar-reserva-dialog';
 import { EstadoReservaBadge } from '@/components/reserva/estado-reserva-badge';

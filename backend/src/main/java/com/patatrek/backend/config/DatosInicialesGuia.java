@@ -112,14 +112,14 @@ public class DatosInicialesGuia implements CommandLineRunner {
                     EstadoCertificado.APROBADO);
             pedirEquipamiento(equipo.get("Casco"), a, 1);
 
+            // Reserva pagada en su totalidad: Molina cargó su certificado (sin revisar) y Paredes no lo cargó.
+            // Como un participante tiene certificado Cargado, la cancelación automática (CU-30) no la cancela,
+            // y los dos quedan No aptos en el control de asistencia (regla de negocio del CU-30 y CU-15).
             Reserva b = reserva(s, cliente("41902334", "Bruno", "Molina", "bmolina@mail.com", "11-5566-2211"),
-                    EstadoReserva.SENADA, 1, "95000", "47500");
+                    EstadoReserva.CONFIRMADA, 2, "190000", "0");
             certificado(participante(b, "41902334", "Bruno", "Molina", "bmolina@mail.com", "11-5566-2211", 1999),
                     EstadoCertificado.CARGADO);
-
-            Reserva c = reserva(s, cliente("35660221", "Agustina", "Paredes", "a.paredes@mail.com", "11-7788-1122"),
-                    EstadoReserva.CONFIRMADA, 1, "95000", "0");
-            participante(c, "35660221", "Agustina", "Paredes", "a.paredes@mail.com", "11-7788-1122", 1990); // sin certificado
+            participante(b, "35660221", "Agustina", "Paredes", "a.paredes@mail.com", "11-7788-1122", 1990); // sin certificado
         });
 
         // ---------- 2) Hoy, En curso (control ya hecho): lista para MARCAR FINALIZACIÓN (CU-16) ----------

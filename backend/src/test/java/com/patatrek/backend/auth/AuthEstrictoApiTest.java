@@ -20,7 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ActiveProfiles("demo")
 @TestPropertySource(properties = {"patatrek.carpeta-uploads=target/test-uploads",
-        "patatrek.revision-vencimientos-ms=600000", "patatrek.seguridad.exigir-login=true"})
+        "patatrek.revision-vencimientos-ms=600000", "patatrek.seguridad.exigir-login=true",
+        "patatrek.pasarela.permitir-forzar-resultado=true", "patatrek.correo.asincronico=false"})
 class AuthEstrictoApiTest {
 
     @Autowired WebApplicationContext contexto;
