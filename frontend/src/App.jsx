@@ -48,7 +48,7 @@ function App() {
                     </RequiereRol>
                 }
             >
-                <Route path="/reservas/:idReserva/certificados" element={<CargarCertificadosPagina />} />
+
             </Route>
             <Route path="/reservas/:idReserva/mi-certificado" element={<MiCertificadoPagina />} />
 
@@ -70,6 +70,7 @@ function App() {
                     <Route path="/mis-reservas" element={<MisReservasPagina />} />
                     <Route path="/reservas/:id" element={<ReservaDetallePagina />} />
                     <Route path="/reservas/:id/pago" element={<PagoPagina />} />
+                    <Route path="/reservas/:idReserva/certificados" element={<CargarCertificadosPagina />} />
                 </Route>
                 <Route path="*" element={<Proximamente titulo="Página no encontrada" texto="La dirección no existe." />} />
             </Route>

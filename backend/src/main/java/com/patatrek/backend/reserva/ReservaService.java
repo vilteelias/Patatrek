@@ -99,7 +99,7 @@ public class ReservaService {
                           @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo,
                           UsuarioActual usuarioActual,
                           @Value("${patatrek.seguridad.exigir-login:false}") boolean exigirLogin
-                          ) {
+    ) {
         this.em = em;
         this.reservaRepository = reservaRepository;
         this.participanteRepository = participanteRepository;
@@ -906,7 +906,8 @@ public class ReservaService {
                 r.getFechaHoraVencimientoRetencion(), segundos, r.getMotivoCancelacion(),
                 motivoNoPago == null ? modosDisponibles(r) : List.of(), motivoNoPago,
                 new ReservaResponse.SalidaResumen(s.getIdSalida(), e.getIdExcursion(), e.getNombre(), s.getFechaInicio(),
-                        s.getFechaFinalizacion(), s.getHoraInicio(), s.getHoraFinalizacion(), e.getPrecio()),
+                        s.getFechaFinalizacion(), s.getHoraInicio(), s.getHoraFinalizacion(), e.getPrecio(),
+                        e.isRequiereCertificado()),
                 participanteRepository.findByReservaIdReservaOrderByIdParticipanteAsc(r.getIdReserva()).stream()
                         .map(p -> new ReservaResponse.ParticipanteResumen(p.getDni(), p.getNombre(), p.getApellido(),
                                 p.getCorreoElectronico()))

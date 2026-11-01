@@ -37,7 +37,7 @@ public record ReservaResponse(
 ) {
     public record SalidaResumen(Long idSalida, Long idExcursion, String excursion, LocalDate fechaInicio,
                                 LocalDate fechaFinalizacion, LocalTime horaInicio, LocalTime horaFinalizacion,
-                                BigDecimal precioPorPersona) {}
+                                BigDecimal precioPorPersona, boolean requiereCertificado) {}
 
     public record ParticipanteResumen(String dni, String nombre, String apellido, String correoElectronico) {}
 

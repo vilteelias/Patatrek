@@ -272,6 +272,7 @@ public class CertificadoMedicoService {
         return certificadoRepository.save(c);
     }
 
+    //falta que la salida este valida (no se puede acceder antes de las 72hs)
     /** Solo las reservas Señadas o Confirmadas de excursiones que exigen certificado trabajan con certificados. */
     private void validarReservaConCertificados(Reserva reserva) {
         if (!EstadoReserva.VIGENTES.contains(reserva.getEstadoReserva())) {
