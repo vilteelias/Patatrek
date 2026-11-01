@@ -5,6 +5,8 @@ import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
 import com.patatrek.backend.excursion.Excursion;
 import com.patatrek.backend.excursion.ExcursionRepository;
+import com.patatrek.backend.notificacion.Correo;
+import com.patatrek.backend.notificacion.FormatoCorreo;
 import com.patatrek.backend.notificacion.NotificacionService;
 import com.patatrek.backend.reserva.EstadoAsistencia;
 import com.patatrek.backend.reserva.EstadoRequisitos;
@@ -107,11 +109,22 @@ public class ValoracionService {
                 new Valoracion(p, datos.calificacion(), comentario, LocalDateTime.now()));
 
         String excursion = p.getReserva().getSalida().getExcursion().getNombre();
-        notificacionService.enviar(p.getCorreoElectronico(),
-                "PataTrek — ¡Gracias por valorar " + excursion + "!",
-                "Hola " + p.getNombre() + ":\n\n"
-                        + "Registramos tu valoración de " + v.getCalificacion() + " estrella(s) para la excursión "
-                        + excursion + ".\n¡Gracias por ayudarnos a mejorar!\n\nEquipo PataTrek");
+        // CU-28 paso 7 / RF-25: confirmación del registro de la valoración
+        Salida salidaValorada = p.getReserva().getSalida();
+        Correo.Builder correo = Correo.para(p.getCorreoElectronico())
+                .asunto("PataTrek — ¡Gracias por valorar " + excursion + "!")
+                .titulo("¡Gracias por tu valoración!")
+                .saludo("Hola " + p.getNombre() + ":")
+                .parrafo("Registramos tu valoración. Nos ayuda a seguir mejorando cada salida.")
+                .dato("Excursión", excursion)
+                .dato("Salida", FormatoCorreo.salida(salidaValorada.getFechaInicio(),
+                        salidaValorada.getFechaFinalizacion(), salidaValorada.getHoraInicio()))
+                .datoDestacado("Calificación", "★".repeat(v.getCalificacion()) + "☆".repeat(5 - v.getCalificacion())
+                        + " (" + v.getCalificacion() + " de 5)");
+        if (comentario != null) {
+            correo.dato("Comentario", comentario);
+        }
+        notificacionService.enviar(correo.nota("¡Te esperamos en la próxima salida!").build());
         return armarFormulario(p, v);
     }
 

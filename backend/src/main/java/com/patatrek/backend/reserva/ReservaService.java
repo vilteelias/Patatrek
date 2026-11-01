@@ -10,7 +10,9 @@ import com.patatrek.backend.excepcion.DatosInvalidosException;
 import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
 import com.patatrek.backend.excursion.Excursion;
+import com.patatrek.backend.notificacion.Correo;
 import com.patatrek.backend.notificacion.NotificacionService;
+import static com.patatrek.backend.notificacion.FormatoCorreo.*;
 import com.patatrek.backend.pago.*;
 import com.patatrek.backend.reserva.dto.*;
 import com.patatrek.backend.reserva.dto.ReservaRequest.EquipamientoSolicitado;
@@ -35,7 +37,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -68,7 +69,6 @@ public class ReservaService {
     private static final Pattern PATRON_DNI = Pattern.compile("\\d{7,8}");
     private static final Pattern PATRON_CORREO = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern PATRON_TELEFONO = Pattern.compile("^[0-9+()\\-\\s]{6,20}$");
-    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final EntityManager em;
     private final ReservaRepository reservaRepository;
@@ -260,22 +260,7 @@ public class ReservaService {
             throw new ReglaNegocioException(motivoNoCancelable);
         }
 
-        int n = reserva.getCantidadParticipantes();
-        salida.setCuposOcupados(Math.max(0, salida.getCuposOcupados() - n));
-        if (salida.getEstadoSalida() == EstadoSalida.COMPLETA && salida.getCuposDisponibles() > 0) {
-            salida.setEstadoSalida(EstadoSalida.DISPONIBLE);
-        }
-        if (reserva.getModalidadAlojamiento() == ModalidadAlojamiento.REFUGIO) {
-            for (AsignacionRefugio a : refugiosDe(salida)) {
-                a.setPlazasOcupadas(Math.max(0, a.getPlazasOcupadas() - n));
-            }
-        }
-        // El equipamiento prestado vuelve a estar disponible (deja de contarse como CONSOLIDADO).
-        for (AsignacionEquipamiento a : asignacionEquipamientoRepository.findByReservaIdReserva(reserva.getIdReserva())) {
-            if (a.getEstadoAsignacion() != EstadoAsignacion.LIBERADO) {
-                a.setEstadoAsignacion(EstadoAsignacion.LIBERADO);
-            }
-        }
+        List<String> serviciosLiberados = liberarRecursosConsolidados(reserva, salida);
 
         String motivoLimpio = vacio(motivo) ? null : motivo.trim();
         reserva.setEstadoReserva(EstadoReserva.CANCELADA);
@@ -283,24 +268,60 @@ public class ReservaService {
                 ? "Cancelada por el cliente (no indicó un motivo)."
                 : "Cancelada por el cliente. Motivo: " + motivoLimpio);
 
+        // CU-23 paso 5: correo al cliente con los detalles de la cancelación
         BigDecimal abonado = reserva.getMontoTotal().subtract(reserva.getSaldoPendiente()).max(BigDecimal.ZERO);
-        notificacionService.enviar(reserva.getCliente().getCorreoElectronico(),
-                "PataTrek — Cancelaste la reserva #" + reserva.getIdReserva(),
-                """
-                ¡Hola %s!
-
-                Confirmamos la cancelación de tu reserva #%d — %s (salida del %s).
-                Participantes: %d
-                Motivo: %s
-                Importe abonado: $ %s. Según las condiciones de PataTrek, no se devuelve
-                porque queda retenido en concepto de gastos administrativos.
-
-                Los lugares, las plazas de refugio y el equipamiento ya quedaron liberados.
-                """.formatted(reserva.getCliente().getNombre(), reserva.getIdReserva(),
-                        salida.getExcursion().getNombre(), salida.getFechaInicio().format(FECHA), n,
-                        motivoLimpio == null ? "(no informado)" : motivoLimpio, abonado.toPlainString()));
+        Correo.Builder correo = Correo.para(reserva.getCliente().getCorreoElectronico())
+                .asunto("PataTrek — Cancelaste la reserva #" + reserva.getIdReserva())
+                .titulo("Tu reserva quedó cancelada")
+                .saludo("Hola " + reserva.getCliente().getNombre() + ":")
+                .parrafo("Confirmamos la cancelación de tu reserva. Estos son los detalles:")
+                .dato("Reserva", "#" + reserva.getIdReserva() + " — " + salida.getExcursion().getNombre())
+                .dato("Salida", salida(salida.getFechaInicio(), salida.getFechaFinalizacion(), salida.getHoraInicio()))
+                .dato("Participantes", String.valueOf(reserva.getCantidadParticipantes()))
+                .dato("Motivo", motivoLimpio == null ? "No indicado" : motivoLimpio)
+                .dato("Servicios liberados", String.join(" · ", serviciosLiberados))
+                .datoDestacado("Importe abonado", pesos(abonado));
+        correo.nota(abonado.signum() > 0
+                        ? "Según las condiciones de PataTrek, en una cancelación voluntaria el importe abonado no se devuelve: "
+                                + "queda retenido en concepto de gastos administrativos."
+                        : "No se realizó ningún cobro por esta reserva.")
+                .boton("Ver otras excursiones", notificacionService.enlace("/"));
+        notificacionService.enviar(correo.build());
         log.info("Reserva #{} cancelada por el cliente", reserva.getIdReserva());
         return respuesta(reserva);
+    }
+
+    /**
+     * Libera los recursos ya consolidados de una reserva pagada (cupos, plazas de refugio y equipamiento prestado).
+     * La usan la cancelación del cliente (CU-23) y la cancelación automática (CU-30).
+     * Devuelve el detalle de lo liberado, para el correo.
+     */
+    public List<String> liberarRecursosConsolidados(Reserva reserva, Salida salida) {
+        List<String> liberado = new ArrayList<>();
+        int n = reserva.getCantidadParticipantes();
+        salida.setCuposOcupados(Math.max(0, salida.getCuposOcupados() - n));
+        if (salida.getEstadoSalida() == EstadoSalida.COMPLETA && salida.getCuposDisponibles() > 0) {
+            salida.setEstadoSalida(EstadoSalida.DISPONIBLE);
+        }
+        liberado.add(n == 1 ? "1 lugar en la salida" : n + " lugares en la salida");
+        if (reserva.getModalidadAlojamiento() == ModalidadAlojamiento.REFUGIO) {
+            for (AsignacionRefugio a : refugiosDe(salida)) {
+                a.setPlazasOcupadas(Math.max(0, a.getPlazasOcupadas() - n));
+            }
+            liberado.add(n == 1 ? "1 plaza de refugio" : n + " plazas de refugio");
+        }
+        // El equipamiento prestado vuelve a estar disponible (deja de contarse como CONSOLIDADO).
+        List<String> equipo = new ArrayList<>();
+        for (AsignacionEquipamiento a : asignacionEquipamientoRepository.findByReservaIdReserva(reserva.getIdReserva())) {
+            if (a.getEstadoAsignacion() != EstadoAsignacion.LIBERADO) {
+                a.setEstadoAsignacion(EstadoAsignacion.LIBERADO);
+                equipo.add(a.getCantidadSolicitada() + " " + a.getEquipamiento().getNombre());
+            }
+        }
+        if (!equipo.isEmpty()) {
+            liberado.add("equipamiento: " + String.join(", ", equipo));
+        }
+        return liberado;
     }
 
     /** null si la reserva se puede cancelar; si no, el motivo. */
@@ -645,8 +666,8 @@ public class ReservaService {
         // Paso 5: el pago se registra "Pendiente" antes de invocar a la pasarela.
         Pago pago = pagoRepository.save(new Pago(reserva, importe, modo));
 
-        // Pasos 6-7: la pasarela procesa el cobro (sin que PataTrek vea datos de tarjeta).
-        PasarelaPagosSimulada.Respuesta r = pasarela.procesar(pago, Boolean.TRUE.equals(datos.aprobar()));
+        // Pasos 6-7: la pasarela procesa el cobro y decide si lo aprueba (sin que PataTrek vea datos de tarjeta).
+        PasarelaPagosSimulada.Respuesta r = pasarela.procesar(pago, datos.aprobar());
         pago.setNroTransaccion(r.nroTransaccion());
         pago.setFechaPago(LocalDateTime.now());
 
@@ -657,10 +678,7 @@ public class ReservaService {
             if (reserva.getEstadoReserva() == EstadoReserva.PENDIENTE_PAGO) {
                 liberar(reserva, MOTIVO_RECHAZO);
                 mensaje = r.motivoRechazo() + " La reserva se canceló y se liberaron los lugares retenidos.";
-                notificacionService.enviar(reserva.getCliente().getCorreoElectronico(),
-                        "PataTrek — Pago rechazado de la reserva #" + reserva.getIdReserva(),
-                        "Tu pago fue rechazado por la pasarela. La reserva #" + reserva.getIdReserva()
-                                + " se canceló y no se realizó ningún cobro.");
+                // El rechazo se informa en pantalla (CU-18 15a, CU-26 7a): la documentación no pide correo.
             } else {
                 mensaje = r.motivoRechazo() + " Tu reserva sigue señada; podés intentar pagar el saldo nuevamente.";
             }
@@ -673,12 +691,16 @@ public class ReservaService {
         BigDecimal saldo = reserva.getSaldoPendiente().subtract(importe).max(BigDecimal.ZERO);
         reserva.setSaldoPendiente(saldo);
 
-        if (reserva.getEstadoReserva() == EstadoReserva.PENDIENTE_PAGO) {
+        boolean primerPago = reserva.getEstadoReserva() == EstadoReserva.PENDIENTE_PAGO;
+        if (primerPago) {
             consolidar(reserva, salida);
         }
         reserva.setEstadoReserva(saldo.signum() == 0 ? EstadoReserva.CONFIRMADA : EstadoReserva.SENADA);
 
         enviarComprobante(reserva, pago);
+        if (primerPago) {
+            avisarCargaDeCertificados(reserva, salida);
+        }
         String mensaje = reserva.getEstadoReserva() == EstadoReserva.CONFIRMADA
                 ? "¡Pago aprobado! Tu reserva está confirmada. Te enviamos el comprobante por correo."
                 : "¡Pago aprobado! Tu reserva quedó señada. Te enviamos el comprobante por correo.";
@@ -777,10 +799,7 @@ public class ReservaService {
     private void vencer(Reserva reserva) {
         liberar(reserva, MOTIVO_VENCIMIENTO);
         log.info("Reserva #{} cancelada por vencimiento de la retención", reserva.getIdReserva());
-        notificacionService.enviar(reserva.getCliente().getCorreoElectronico(),
-                "PataTrek — Tu reserva #" + reserva.getIdReserva() + " venció",
-                "Pasaron " + minutosRetencion + " minutos sin que se complete el pago, así que la reserva se canceló "
-                        + "y liberamos los lugares. Podés volver a reservar desde el catálogo.");
+        // CU-18 14a: se cancela y se liberan los recursos; la documentación no pide correo.
     }
 
     // =====================================================================
@@ -861,29 +880,77 @@ public class ReservaService {
         return null;
     }
 
+    /**
+     * Enlace de acceso del participante (ID de reserva + DNI, CU-19 y CU-24) para cargar su propio certificado.
+     * Se manda una sola vez, con el primer pago aprobado: recién ahí la reserva queda Señada o Confirmada y admite
+     * certificados (precondición del CU-24). Solo si la excursión lo exige, y no al titular (los carga desde su cuenta).
+     */
+    private void avisarCargaDeCertificados(Reserva r, Salida s) {
+        if (!s.getExcursion().isRequiereCertificado()) {
+            return;
+        }
+        String correoTitular = r.getCliente().getCorreoElectronico();
+        LocalDateTime limite = s.getFechaInicio().atTime(s.getHoraInicio()).minusHours(HORAS_MINIMAS_ANTICIPACION);
+        Set<String> avisados = new HashSet<>();
+        for (Participante p : participanteRepository.findByReservaIdReservaOrderByIdParticipanteAsc(r.getIdReserva())) {
+            String correo = p.getCorreoElectronico();
+            if (vacio(correo) || correo.trim().equalsIgnoreCase(correoTitular)
+                    || !avisados.add(correo.trim().toLowerCase() + "|" + p.getDni())) {
+                continue;
+            }
+            notificacionService.enviar(Correo.para(correo.trim())
+                    .asunto("PataTrek — Cargá tu certificado médico para " + s.getExcursion().getNombre())
+                    .titulo("Cargá tu certificado médico")
+                    .saludo("Hola " + p.getNombre() + ":")
+                    .parrafo(r.getCliente().getNombre() + " " + r.getCliente().getApellido()
+                            + " te anotó en una excursión de PataTrek que exige certificado médico. "
+                            + "Podés cargar el tuyo desde el botón, sin necesidad de crear una cuenta.")
+                    .dato("Excursión", s.getExcursion().getNombre())
+                    .dato("Salida", salida(s.getFechaInicio(), s.getFechaFinalizacion(), s.getHoraInicio()))
+                    .dato("Reserva", "#" + r.getIdReserva())
+                    .dato("Tu DNI", p.getDni())
+                    .datoDestacado("Plazo para cargarlo", "hasta el " + fechaHora(limite) + " h")
+                    .dato("Formatos", "PDF, JPG o PNG, hasta 5 MB")
+                    .boton("Cargar mi certificado", notificacionService.enlace(
+                            "/reservas/" + r.getIdReserva() + "/mi-certificado?dni=" + p.getDni()))
+                    .nota("Si ningún participante de la reserva presenta su certificado antes del plazo, la reserva "
+                            + "se cancela automáticamente sin devolución. Si no podés abrir el botón, entrá a PataTrek "
+                            + "con el N.º de reserva y tu DNI.")
+                    .build());
+        }
+    }
+
+    /** CU-26 paso 8 / CU-18: comprobante de pago al cliente titular. */
     private void enviarComprobante(Reserva r, Pago pago) {
         Salida s = r.getSalida();
-        String cuerpo = """
-                ¡Hola %s!
-
-                Recibimos tu pago. Este es tu comprobante:
-
-                Reserva: #%d — %s
-                Fecha de la salida: %s
-                Participantes: %d
-                Importe abonado: $ %s (%s)
-                N.º de transacción: %s
-                Estado de la reserva: %s
-                Saldo pendiente: $ %s
-
-                ¡Gracias por elegir PataTrek!
-                """.formatted(r.getCliente().getNombre(), r.getIdReserva(), s.getExcursion().getNombre(),
-                s.getFechaInicio().format(FECHA), r.getCantidadParticipantes(), pago.getImporte().toPlainString(),
-                pago.getModoPago() == ModoPago.SENA ? "seña" : pago.getModoPago() == ModoPago.TOTAL ? "pago completo" : "saldo",
-                pago.getNroTransaccion(), r.getEstadoReserva() == EstadoReserva.CONFIRMADA ? "Confirmada" : "Señada",
-                r.getSaldoPendiente().toPlainString());
-        notificacionService.enviar(r.getCliente().getCorreoElectronico(),
-                "PataTrek — Comprobante de pago de la reserva #" + r.getIdReserva(), cuerpo);
+        boolean confirmada = r.getEstadoReserva() == EstadoReserva.CONFIRMADA;
+        String modo = switch (pago.getModoPago()) {
+            case SENA -> "Seña (50 %)";
+            case TOTAL -> "Pago completo";
+            case SALDO -> "Saldo restante";
+            case REINTEGRO -> "Reintegro";
+        };
+        Correo.Builder correo = Correo.para(r.getCliente().getCorreoElectronico())
+                .asunto("PataTrek — Comprobante de pago de la reserva #" + r.getIdReserva())
+                .titulo("¡Recibimos tu pago!")
+                .saludo("Hola " + r.getCliente().getNombre() + ":")
+                .parrafo(confirmada
+                        ? "Este es el comprobante de tu pago. Tu reserva está confirmada."
+                        : "Este es el comprobante de tu pago. Tu reserva quedó señada.")
+                .dato("Reserva", "#" + r.getIdReserva() + " — " + s.getExcursion().getNombre())
+                .dato("Salida", salida(s.getFechaInicio(), s.getFechaFinalizacion(), s.getHoraInicio()))
+                .dato("Participantes", String.valueOf(r.getCantidadParticipantes()))
+                .dato("Modo de pago", modo)
+                .dato("N.º de transacción", pago.getNroTransaccion())
+                .dato("Fecha del pago", fechaHora(pago.getFechaPago()))
+                .datoDestacado("Importe abonado", pesos(pago.getImporte()));
+        if (!confirmada) {
+            correo.dato("Saldo pendiente", pesos(r.getSaldoPendiente()))
+                    .nota("Podés pagar el saldo desde Mis reservas hasta 72 horas antes de la salida. "
+                            + "Si no se completa el pago en ese plazo, la reserva se cancela automáticamente sin devolución de la seña.");
+        }
+        correo.boton("Ver mi reserva", notificacionService.enlace("/reservas/" + r.getIdReserva()));
+        notificacionService.enviar(correo.build());
     }
 
     private ReservaResponse respuesta(Reserva r) {
