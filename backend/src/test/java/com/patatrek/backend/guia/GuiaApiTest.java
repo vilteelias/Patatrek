@@ -28,7 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @ActiveProfiles("demo")
-@TestPropertySource(properties = "patatrek.carpeta-uploads=target/test-uploads")
+@TestPropertySource(properties = {"patatrek.carpeta-uploads=target/test-uploads",
+        "patatrek.pasarela.permitir-forzar-resultado=true", "patatrek.correo.asincronico=false"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class GuiaApiTest {
 

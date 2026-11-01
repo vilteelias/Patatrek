@@ -5,6 +5,8 @@ import com.patatrek.backend.devolucion.dto.DevolucionesResponse;
 import com.patatrek.backend.devolucion.dto.ResultadoDevolucionResponse;
 import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
+import com.patatrek.backend.notificacion.Correo;
+import com.patatrek.backend.notificacion.FormatoCorreo;
 import com.patatrek.backend.notificacion.NotificacionService;
 import com.patatrek.backend.pago.*;
 import com.patatrek.backend.reserva.EstadoReserva;
@@ -21,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -38,8 +39,6 @@ import java.util.*;
 public class DevolucionService {
 
     private static final Logger log = LoggerFactory.getLogger(DevolucionService.class);
-    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     /** $ 85.000 (sin decimales, como en las pantallas). */
     private static String pesos(BigDecimal importe) {
@@ -185,30 +184,25 @@ public class DevolucionService {
                 reintegro == null ? null : reintegro.getFechaPago());
     }
 
+    /** CU-27 paso 8 / RF-24: comprobante con la fecha, el motivo, el ID de la reserva y el monto reintegrado. */
     private void enviarComprobante(Reserva r, Pago reintegro, String nroOriginal) {
         Salida s = r.getSalida();
         String motivo = r.getMotivoCancelacion() != null ? r.getMotivoCancelacion() : s.getMotivoCancelacion();
-        String cuerpo = """
-                ¡Hola %s!
-
-                Te devolvimos el total de lo que abonaste por tu reserva. Este es el comprobante:
-
-                Reserva: #%d — %s (salida del %s)
-                Motivo: %s
-                Monto reintegrado: %s
-                Fecha del reintegro: %s
-                N.º de transacción de reintegro: %s
-                Transacción original: %s
-
-                El dinero vuelve al mismo medio con el que pagaste. Según tu banco o billetera,
-                puede tardar unos días hábiles en verse reflejado.
-
-                Lamentamos los inconvenientes. ¡Esperamos verte pronto en otra salida de PataTrek!
-                """.formatted(r.getCliente().getNombre(), r.getIdReserva(), s.getExcursion().getNombre(),
-                s.getFechaInicio().format(FECHA), motivo == null ? "(no informado)" : motivo,
-                pesos(reintegro.getImporte()), reintegro.getFechaPago().format(FECHA_HORA),
-                reintegro.getNroTransaccion(), nroOriginal == null ? "-" : nroOriginal);
-        notificacionService.enviar(r.getCliente().getCorreoElectronico(),
-                "PataTrek — Comprobante de devolución de la reserva #" + r.getIdReserva(), cuerpo);
+        notificacionService.enviar(Correo.para(r.getCliente().getCorreoElectronico())
+                .asunto("PataTrek — Comprobante de devolución de la reserva #" + r.getIdReserva())
+                .titulo("Te devolvimos lo que abonaste")
+                .saludo("Hola " + r.getCliente().getNombre() + ":")
+                .parrafo("Procesamos la devolución total de lo que pagaste por tu reserva. Este es el comprobante:")
+                .dato("Reserva", "#" + r.getIdReserva() + " — " + s.getExcursion().getNombre())
+                .dato("Salida", FormatoCorreo.salida(s.getFechaInicio(), s.getFechaFinalizacion(), s.getHoraInicio()))
+                .dato("Motivo", motivo == null ? "No informado" : motivo)
+                .dato("Fecha del reintegro", FormatoCorreo.fechaHora(reintegro.getFechaPago()))
+                .dato("N.º de transacción de reintegro", reintegro.getNroTransaccion())
+                .dato("Transacción original", nroOriginal == null ? "-" : nroOriginal)
+                .datoDestacado("Monto reintegrado", FormatoCorreo.pesos(reintegro.getImporte()))
+                .nota("El dinero vuelve al mismo medio con el que pagaste. Según tu banco o billetera, "
+                        + "puede tardar unos días hábiles en verse reflejado. Lamentamos los inconvenientes.")
+                .boton("Ver otras excursiones", notificacionService.enlace("/"))
+                .build());
     }
 }

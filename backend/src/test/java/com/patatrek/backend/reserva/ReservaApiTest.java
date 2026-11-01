@@ -30,7 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ActiveProfiles("demo")
 @TestPropertySource(properties = {"patatrek.carpeta-uploads=target/test-uploads",
-        "patatrek.revision-vencimientos-ms=600000"})
+        "patatrek.revision-vencimientos-ms=600000",
+        "patatrek.pasarela.permitir-forzar-resultado=true", "patatrek.correo.asincronico=false"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ReservaApiTest {
 

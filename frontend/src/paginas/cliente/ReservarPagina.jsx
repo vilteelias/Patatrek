@@ -236,9 +236,9 @@ export default function ReservarPagina() {
   };
 
   // La pasarela (ventana emergente) llama a CU-26 y muestra el resultado; al volver se abre el detalle.
-  const pagar = async (modo, aprobar) => {
+  const pagar = async (modo) => {
     setErrorGeneral('');
-    return pagarReserva(reserva.idReserva, modo, aprobar);
+    return pagarReserva(reserva.idReserva, modo);
   };
   const terminarPago = (resultado) => navigate(`/reservas/${reserva.idReserva}`, { state: { resultado } });
 

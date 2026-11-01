@@ -24,4 +24,9 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     List<Reserva> findByEstadoReservaInOrderByIdReservaAsc(java.util.Collection<EstadoReserva> estados);
 
     long countByEstadoReservaIn(java.util.Collection<EstadoReserva> estados);
+
+    /** CU-30: reservas de una salida en los estados indicados, con su cliente titular. */
+    @EntityGraph(attributePaths = {"cliente"})
+    List<Reserva> findBySalidaIdSalidaAndEstadoReservaInOrderByIdReservaAsc(Long idSalida,
+                                                                           java.util.Collection<EstadoReserva> estados);
 }

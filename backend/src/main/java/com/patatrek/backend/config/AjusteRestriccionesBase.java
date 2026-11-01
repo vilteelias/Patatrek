@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -19,6 +21,7 @@ import java.util.List;
  * SQL Server le agregó una restricción CHECK que solo admite los modos SENA, TOTAL y SALDO.
  * Esa restricción impide registrar la transacción de reintegro (modo REINTEGRO, CU-27).
  * Al arrancar, se quitan las restricciones CHECK de pago.modo_pago que no admitan REINTEGRO.
+ * También deja que certificado_medico admita certificados Pendientes sin archivo ni fechas (CU-24).
  * El script oficial no tiene esa restricción, así que en una base creada con él no hace nada.
  */
 @Component
@@ -56,8 +59,40 @@ public class AjusteRestriccionesBase implements CommandLineRunner {
                 }
                 log.info("Se quitó la restricción {} de pago.modo_pago para admitir el modo REINTEGRO", nombre);
             }
+            permitirCertificadosPendientes(con);
         } catch (Exception e) {
             log.warn("No se pudo revisar la restricción de pago.modo_pago: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * CU-24: al registrar la reserva se crea un certificado "Pendiente" por participante, todavía sin archivo ni fechas.
+     * En las bases creadas con el script anterior, archivo_adjunto (columna vieja, hoy es path_archivo_adjunto),
+     * fecha_subida y fecha_vencimiento no admiten vacíos, y la reserva falla. Se las deja admitir vacíos.
+     */
+    private void permitirCertificadosPendientes(Connection con) {
+        Map<String, String> columnas = new LinkedHashMap<>();
+        columnas.put("archivo_adjunto", "nvarchar(255)");
+        columnas.put("fecha_subida", "datetime2");
+        columnas.put("fecha_vencimiento", "date");
+        for (Map.Entry<String, String> columna : columnas.entrySet()) {
+            try (PreparedStatement ps = con.prepareStatement(
+                    "select 1 from sys.columns where object_id = object_id('dbo.certificado_medico')"
+                            + " and name = ? and is_nullable = 0")) {
+                ps.setString(1, columna.getKey());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        continue; // no existe o ya admite vacíos
+                    }
+                }
+                try (Statement st = con.createStatement()) {
+                    st.execute("alter table dbo.certificado_medico alter column " + columna.getKey() + " "
+                            + columna.getValue() + " null");
+                }
+                log.info("certificado_medico.{} ahora admite vacíos (certificados en estado Pendiente)", columna.getKey());
+            } catch (Exception e) {
+                log.warn("No se pudo ajustar certificado_medico.{}: {}", columna.getKey(), e.getMessage());
+            }
         }
     }
 }

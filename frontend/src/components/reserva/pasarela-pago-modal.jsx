@@ -26,14 +26,13 @@ const MEDIOS = [
 /**
  * abierto: si se muestra.
  * concepto / importe / modo: lo que se cobra.
- * onPagar(aprobar) → promesa con el resultado de CU-26 ({ estadoPago, nroTransaccion, mensaje, ... }).
+ * onPagar() → promesa con el resultado de CU-26 ({ estadoPago, nroTransaccion, mensaje, ... }).
  * onCancelar(): el usuario cierra sin pagar (flujo 4c: no se genera ningún pago).
  * onTerminar(resultado): el usuario vuelve a PataTrek después de ver el resultado.
  */
 export function PasarelaPagoModal({ abierto, concepto, importe, modo, onPagar, onCancelar, onTerminar }) {
   const [etapa, setEtapa] = useState('elegir'); // elegir | procesando | resultado
   const [medio, setMedio] = useState('credito');
-  const [aprobar, setAprobar] = useState(true);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
 
@@ -41,7 +40,6 @@ export function PasarelaPagoModal({ abierto, concepto, importe, modo, onPagar, o
     if (abierto) {
       setEtapa('elegir');
       setMedio('credito');
-      setAprobar(true);
       setResultado(null);
       setError('');
     }
@@ -50,9 +48,9 @@ export function PasarelaPagoModal({ abierto, concepto, importe, modo, onPagar, o
   const pagar = async () => {
     setEtapa('procesando');
     try {
-      // Pausa para que en la demo se vea que la pasarela "procesa" el cobro.
+      // Pausa para que se vea que la pasarela "procesa" el cobro. La pasarela decide sola si lo aprueba.
       await new Promise((r) => setTimeout(r, 1500));
-      setResultado(await onPagar(aprobar));
+      setResultado(await onPagar());
     } catch (e) {
       setError(e.message);
     }
@@ -123,35 +121,6 @@ export function PasarelaPagoModal({ abierto, concepto, importe, modo, onPagar, o
                       </button>
                     );
                   })}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-dashed border-[#b9c4d0] bg-white px-4 py-3">
-                <p className="mb-2 text-[11px] font-semibold tracking-wide text-[#5f6b7a] uppercase">
-                  Simulación para la demo · respuesta de la pasarela
-                </p>
-                <div className="flex gap-2">
-                  {[
-                    { valor: true, texto: 'Aprobar pago' },
-                    { valor: false, texto: 'Rechazar pago' },
-                  ].map(({ valor, texto }) => (
-                    <button
-                      key={texto}
-                      type="button"
-                      aria-pressed={aprobar === valor}
-                      onClick={() => setAprobar(valor)}
-                      className={cn(
-                        'flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
-                        aprobar === valor
-                          ? valor
-                            ? 'border-[#00a650] bg-[#00a650] text-white'
-                            : 'border-[#d93a3a] bg-[#d93a3a] text-white'
-                          : 'border-[#dde3ea] bg-white text-[#5f6b7a] hover:bg-[#eef2f6]',
-                      )}
-                    >
-                      {texto}
-                    </button>
-                  ))}
                 </div>
               </div>
 

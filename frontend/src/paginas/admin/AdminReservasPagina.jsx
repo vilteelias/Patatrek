@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { Clock, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EstadoReservaBadge } from '@/components/reserva/estado-reserva-badge';
+import { CancelacionAutomaticaDialog } from '@/components/reserva/cancelacion-automatica-dialog';
 import {
   ALOJAMIENTO,
   CLASE_SELECT,
@@ -53,6 +54,8 @@ export default function AdminReservasPagina() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [detalle, setDetalle] = useState(null); // { id, reserva? , error? }
+  const [cancelacionAbierta, setCancelacionAbierta] = useState(false);
+  const [recarga, setRecarga] = useState(0);
 
   const errorFechas =
     demorados.desde && demorados.hasta && demorados.hasta < demorados.desde
@@ -74,7 +77,7 @@ export default function AdminReservasPagina() {
     return () => {
       vigente = false;
     };
-  }, [demorados, errorFechas]);
+  }, [demorados, errorFechas, recarga]);
 
   const abrirDetalle = (id) => {
     setDetalle({ id });
@@ -97,10 +100,15 @@ export default function AdminReservasPagina() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <p className="text-sm text-muted-foreground">Gestión comercial</p>
-        <h1 className="font-serif text-3xl font-semibold text-foreground">Reservas</h1>
-        <p className="text-muted-foreground">Catálogo general de todas las reservas del sistema.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Gestión comercial</p>
+          <h1 className="font-serif text-3xl font-semibold text-foreground">Reservas</h1>
+          <p className="text-muted-foreground">Catálogo general de todas las reservas del sistema.</p>
+        </div>
+        <Button variant="outline" className="h-10 shrink-0 px-4" onClick={() => setCancelacionAbierta(true)}>
+          <Clock aria-hidden="true" /> Cancelación automática
+        </Button>
       </div>
 
       <section aria-label="Filtros" className="rounded-2xl border border-border bg-card px-5 py-4">
@@ -259,6 +267,13 @@ export default function AdminReservasPagina() {
       )}
 
       <DetalleReservaDialog detalle={detalle} onCerrar={() => setDetalle(null)} />
+      <CancelacionAutomaticaDialog
+        abierto={cancelacionAbierta}
+        onTerminar={(huboCambios) => {
+          setCancelacionAbierta(false);
+          if (huboCambios) setRecarga((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

@@ -17,7 +17,7 @@ function importeDe(reserva, modo) {
  *
  * CORRECCIÓN DE LA CÁTEDRA: PataTrek NO pide número de tarjeta, vencimiento, CVV ni titular.
  *
- * onConfirmar(modo, aprobar) → promesa con el resultado del pago.
+ * onConfirmar(modo) → promesa con el resultado del pago (la pasarela decide si se aprueba).
  * onTerminar(resultado) → el cliente volvió de la pasarela con un resultado.
  * onCancelado() → el cliente cerró la pasarela sin pagar o hubo un error (para refrescar la reserva).
  */
@@ -123,7 +123,7 @@ export function FormularioPago({
         concepto={`PataTrek · Reserva #${reserva.idReserva} — ${reserva.salida.excursion}`}
         importe={importe}
         modo={modo}
-        onPagar={(aprobar) => onConfirmar(modo, aprobar)}
+        onPagar={() => onConfirmar(modo)}
         onCancelar={() => {
           setPasarelaAbierta(false);
           onCancelado?.();
