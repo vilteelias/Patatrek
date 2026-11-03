@@ -58,6 +58,7 @@ function App() {
        
         <Route path="salidas/nueva" element={<PlanificarSalida/>}/>
         <Route path="salidas/:id/asignar-cupos" element={<AsignarPersonalCupos />} />
+        <Route path="/salidas/:id/contingencia" element={<RegistrarContingencia />} />
         <Route path="*" element={<Proximamente />} />
       </Route>
     </Routes>
