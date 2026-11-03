@@ -1,0 +1,29 @@
+package com.patatrek.backend.contingencia;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/contingencias")
+@CrossOrigin(origins = "*") // Permite la comunicación libre con tu frontend en desarrollo
+public class ContingenciaController {
+
+    private final ContingenciaService contingenciaService;
+
+    // Inyección de dependencias por constructor
+    public ContingenciaController(ContingenciaService contingenciaService) {
+        this.contingenciaService = contingenciaService;
+    }
+
+    @PostMapping("/{idSalida}")
+    public ResponseEntity<String> registrarContingencia(
+            @PathVariable Long idSalida,
+            @RequestBody ContingenciaDTO dto) {
+        try {
+            contingenciaService.registrarContingencia(idSalida, dto);
+            return ResponseEntity.ok("Contingencia registrada exitosamente.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al registrar contingencia: " + e.getMessage());
+        }
+    }
+}

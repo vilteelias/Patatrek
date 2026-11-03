@@ -29,9 +29,10 @@ public class SalidaService {
     @Autowired
     private AsignacionRefugioRepository asignacionRefugioRepository;
 
-    public List<Salida> obtenerTodas() {
-        return salidaRepository.findAll();
-    }
+    @Transactional(readOnly = true)
+public List<Salida> obtenerTodas() {
+    return salidaRepository.findAll();
+}
 
     @Transactional(readOnly = true)
     public Salida obtenerPorId(Long id) {

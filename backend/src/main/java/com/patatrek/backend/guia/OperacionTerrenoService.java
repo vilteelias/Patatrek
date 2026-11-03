@@ -1,15 +1,20 @@
 package com.patatrek.backend.guia;
 
+import com.patatrek.backend.auth.Rol;
+import com.patatrek.backend.auth.UsuarioActual;
 import com.patatrek.backend.certificado.CertificadoMedico;
 import com.patatrek.backend.certificado.CertificadoMedicoRepository;
 import com.patatrek.backend.certificado.EstadoCertificado;
 import com.patatrek.backend.equipamiento.Equipamiento;
 import com.patatrek.backend.equipamiento.EquipamientoResponse;
 import com.patatrek.backend.excepcion.AccesoDenegadoException;
+import com.patatrek.backend.excepcion.CredencialesInvalidasException;
 import com.patatrek.backend.excepcion.RecursoNoEncontradoException;
 import com.patatrek.backend.excepcion.ReglaNegocioException;
 import com.patatrek.backend.excursion.Excursion;
 import com.patatrek.backend.guia.dto.*;
+import com.patatrek.backend.notificacion.Correo;
+import com.patatrek.backend.notificacion.FormatoCorreo;
 import com.patatrek.backend.notificacion.NotificacionService;
 import com.patatrek.backend.reserva.*;
 import com.patatrek.backend.salida.*;
@@ -22,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +52,9 @@ public class OperacionTerrenoService {
     private final EntregaEquipamientoRepository entregaEquipamientoRepository;
     private final NotificacionService notificacionService;
     private final String correoGuiaDemo;
+    private final String urlFrontend;
+    private final UsuarioActual usuarioActual;
+    private final boolean exigirLogin;
 
     public OperacionTerrenoService(GuiaRepository guiaRepository,
                                    AsignacionGuiaRepository asignacionGuiaRepository,
@@ -57,7 +64,10 @@ public class OperacionTerrenoService {
                                    AsignacionEquipamientoRepository asignacionEquipamientoRepository,
                                    EntregaEquipamientoRepository entregaEquipamientoRepository,
                                    NotificacionService notificacionService,
-                                   @Value("${patatrek.guia-demo-correo:martin.almeida@patatrek.com}") String correoGuiaDemo) {
+                                   @Value("${patatrek.guia-demo-correo:martin.almeida@patatrek.com}") String correoGuiaDemo,
+                                   @Value("${patatrek.frontend-url:http://localhost:5173}") String urlFrontend,
+                                   UsuarioActual usuarioActual,
+                                   @Value("${patatrek.seguridad.exigir-login:false}") boolean exigirLogin) {
         this.guiaRepository = guiaRepository;
         this.asignacionGuiaRepository = asignacionGuiaRepository;
         this.asignacionRefugioRepository = asignacionRefugioRepository;
@@ -67,6 +77,9 @@ public class OperacionTerrenoService {
         this.entregaEquipamientoRepository = entregaEquipamientoRepository;
         this.notificacionService = notificacionService;
         this.correoGuiaDemo = correoGuiaDemo;
+        this.urlFrontend = urlFrontend;
+        this.usuarioActual = usuarioActual;
+        this.exigirLogin = exigirLogin;
     }
 
     // =========================================================
@@ -74,11 +87,19 @@ public class OperacionTerrenoService {
     // =========================================================
 
     /**
-     * TEMPORAL: mientras no esté el módulo de Autenticación se usa un guía de demostración
-     * (patatrek.guia-demo-correo). Después se obtiene del usuario que inició sesión.
+     * El guía que inició sesión. Si nadie inició sesión como guía y todavía no se exige login
+     * (patatrek.seguridad.exigir-login=false), se usa el guía de demostración (patatrek.guia-demo-correo).
      */
     @Transactional(readOnly = true)
     public Guia guiaActual() {
+        var sesion = usuarioActual.conRol(Rol.GUIA);
+        if (sesion.isPresent()) {
+            return guiaRepository.findById(sesion.get().id())
+                    .orElseThrow(() -> new CredencialesInvalidasException("Tu sesión ya no es válida. Iniciá sesión de nuevo."));
+        }
+        if (exigirLogin) {
+            throw new CredencialesInvalidasException("Iniciá sesión como guía para continuar.");
+        }
         return guiaRepository.findByCorreoElectronicoIgnoreCase(correoGuiaDemo)
                 .or(guiaRepository::findFirstByOrderByIdUsuarioAsc)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No hay guías cargados en el sistema."));
@@ -233,12 +254,19 @@ public class OperacionTerrenoService {
 
         String nombreExcursion = salida.getExcursion().getNombre();
         for (Participante p : habilitados) {
-            notificacionService.enviar(p.getCorreoElectronico(),
-                    "¿Cómo estuvo tu excursión " + nombreExcursion + "?",
-                    "Hola " + p.getNombre() + ":\n\n"
-                            + "Gracias por participar de la excursión " + nombreExcursion + " con PataTrek.\n"
-                            + "Nos ayudaría mucho que la valores desde tu reserva #" + p.getReserva().getIdReserva()
-                            + ".\n\n¡Te esperamos en la próxima salida!\nEquipo PataTrek");
+            // CU-16 paso 5 / RF-14: solicitud de valoración con el enlace al formulario (CU-28)
+            notificacionService.enviar(Correo.para(p.getCorreoElectronico())
+                    .asunto("PataTrek — ¿Cómo estuvo tu excursión " + nombreExcursion + "?")
+                    .titulo("¿Cómo estuvo tu excursión?")
+                    .saludo("Hola " + p.getNombre() + ":")
+                    .parrafo("Gracias por participar de " + nombreExcursion + " con PataTrek. "
+                            + "Nos ayudaría mucho que nos cuentes cómo te fue: elegí de 1 a 5 estrellas y, si querés, dejanos un comentario.")
+                    .dato("Excursión", nombreExcursion)
+                    .dato("Salida", FormatoCorreo.salida(salida.getFechaInicio(), salida.getFechaFinalizacion(), salida.getHoraInicio()))
+                    .dato("Reserva", "#" + p.getReserva().getIdReserva())
+                    .boton("Valorar la excursión", urlFrontend + "/valorar?reserva=" + p.getReserva().getIdReserva() + "&dni=" + p.getDni())
+                    .nota("Solo se puede registrar una valoración por participante. ¡Te esperamos en la próxima salida!")
+                    .build());
         }
 
         return new FinalizacionResponse(habilitados.size(), armarRespuestas(List.of(asignacion)).get(0));

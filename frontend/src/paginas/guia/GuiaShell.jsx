@@ -2,21 +2,37 @@ import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { GuiaLayout } from '@/components/guia/guia-layout';
 import { obtenerGuiaActual } from '@/api/guia';
+import { RequiereRol } from '@/sesion/RequiereRol';
+import { useSesion } from '@/sesion/SesionProvider';
 
-// Marco de todas las pantallas del guía: carga quién es el guía y muestra el encabezado.
+// Marco de todas las pantallas del guía: exige sesión con rol Guía, carga quién es y muestra el encabezado.
 export default function GuiaShell() {
+  return (
+    <RequiereRol roles={['GUIA']}>
+      <PanelGuia />
+    </RequiereRol>
+  );
+}
+
+function PanelGuia() {
   const navigate = useNavigate();
-  const [guia, setGuia] = useState({ nombre: '', apellido: '' });
+  const { usuario, salir } = useSesion();
+  const [guia, setGuia] = useState({ nombre: usuario?.nombre ?? '', apellido: usuario?.apellido ?? '' });
 
   useEffect(() => {
     obtenerGuiaActual()
       .then(setGuia)
-      .catch(() => setGuia({ nombre: 'Guía', apellido: 'PataTrek' }));
-  }, []);
+      .catch(() => {});
+  }, [usuario?.id]);
 
   return (
-    // "Cerrar sesión" vuelve al inicio hasta que esté el módulo de Autenticación
-    <GuiaLayout guia={guia} onCerrarSesion={() => navigate('/')}>
+    <GuiaLayout
+      guia={guia}
+      onCerrarSesion={async () => {
+        navigate('/', { replace: true });
+        await salir(); // CU-03
+      }}
+    >
       <Outlet />
     </GuiaLayout>
   );

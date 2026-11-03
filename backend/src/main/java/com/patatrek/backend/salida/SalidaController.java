@@ -19,6 +19,8 @@ public class SalidaController {
         return ResponseEntity.ok(salidaService.obtenerTodas());
     }
 
+    
+
    @GetMapping("/{id}")
     public ResponseEntity<Salida> obtenerSalidaPorId(@PathVariable Long id) {
         Salida salida = salidaService.obtenerPorId(id);

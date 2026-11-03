@@ -22,8 +22,10 @@ public class ReprogramacionStrategy implements ResolucionContingenciaStrategy {
     @Override
     public void procesarResolucion(Salida salida, Contingencia contingencia, ContingenciaDTO dto) {
         // Se actualiza la fecha en la salida
-        salida.setFechaInicio(dto.getNuevaFecha().atTime(dto.getNuevoHorario()));
-        
+       salida.setFechaInicio(dto.getNuevaFecha());
+        if (dto.getNuevoHorario() != null) {
+        salida.setHoraInicio(dto.getNuevoHorario());
+}
         // Si hay un recorrido alternativo (opcional), se guarda en la contingencia
         if (dto.getNuevoRecorrido() != null && !dto.getNuevoRecorrido().isEmpty()) {
             contingencia.setRecorridoAlternativo(dto.getNuevoRecorrido());

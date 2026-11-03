@@ -89,7 +89,7 @@ private List<AsignacionGuia> asignacionGuias = new ArrayList<>();
     public void setExcursion(Excursion excursion) { this.excursion = excursion; }
 
     public LocalDate getFechaInicio() { return fechaInicio; }
-    public void setFechaInicio(LocalDateTime fechaInicio) { this.fechaInicio = fechaInicio; }
+    public void setFechaInicio(LocalDate dia) { this.fechaInicio = dia; }
 
     public LocalDate getFechaFinalizacion() { return fechaFinalizacion; }
     public void setFechaFinalizacion(LocalDate fechaFinalizacion) { this.fechaFinalizacion = fechaFinalizacion; }

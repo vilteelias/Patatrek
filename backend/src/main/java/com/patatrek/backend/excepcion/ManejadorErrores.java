@@ -27,6 +27,27 @@ public class ManejadorErrores {
                 .body(new RespuestaError("Revisá los datos marcados antes de continuar.", errores));
     }
 
+    @ExceptionHandler(DatosInvalidosException.class)
+    public ResponseEntity<RespuestaError> datosInvalidosServicio(DatosInvalidosException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(ex.getMessage(), ex.getErrores()));
+    }
+
+    /** Un filtro con formato inválido en la URL (ej. ?estado=XYZ o ?desde=31-12-2026). */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<RespuestaError> parametroInvalido(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(
+                "El valor de \"" + ex.getName() + "\" no es válido.", Map.of(ex.getName(), "Valor no válido.")));
+    }
+
+    /** Falta un parámetro obligatorio en la URL (ej. ?reserva=…&dni=…). */
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<RespuestaError> parametroFaltante(
+            org.springframework.web.bind.MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest().body(new RespuestaError(
+                "Falta el dato \"" + ex.getParameterName() + "\".", Map.of(ex.getParameterName(), "Dato obligatorio.")));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> jsonInvalido(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
@@ -37,6 +58,11 @@ public class ManejadorErrores {
     public ResponseEntity<RespuestaError> reglaNegocio(ReglaNegocioException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new RespuestaError(ex.getMessage(), ex.getErrores()));
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<RespuestaError> credencialesInvalidas(CredencialesInvalidasException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new RespuestaError(ex.getMessage(), Map.of()));
     }
 
     @ExceptionHandler(AccesoDenegadoException.class)
@@ -54,6 +80,12 @@ public class ManejadorErrores {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<RespuestaError> archivoGrande(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(new RespuestaError("La imagen no puede superar los 5 MB.", Map.of()));
+                .body(new RespuestaError("El archivo no puede superar los 5 MB.", Map.of()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<RespuestaError> argumentoIlegal(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+                .body(new RespuestaError(ex.getMessage(), Map.of()));
     }
 }
