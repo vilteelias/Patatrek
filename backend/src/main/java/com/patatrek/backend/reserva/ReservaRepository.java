@@ -2,8 +2,6 @@ package com.patatrek.backend.reserva;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,8 +29,4 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     @EntityGraph(attributePaths = {"cliente"})
     List<Reserva> findBySalidaIdSalidaAndEstadoReservaInOrderByIdReservaAsc(Long idSalida,
                                                                            java.util.Collection<EstadoReserva> estados);
-
-    /** Reservas vigentes asociadas a una salida específica para aplicar contingencias. */
-    @Query("SELECT r FROM Reserva r WHERE r.salida.idSalida = :idSalida AND r.estadoReserva IN ('CONFIRMADA', 'SENADA', 'PENDIENTE_PAGO')")
-    List<Reserva> findVigentesBySalida(@Param("idSalida") Long idSalida);
 }

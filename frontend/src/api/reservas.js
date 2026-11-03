@@ -75,3 +75,8 @@ export function simularVencimiento(id) {
 export function ejecutarCancelacionAutomatica() {
   return pedir('/api/admin/reservas/cancelacion-automatica', { metodo: 'POST' });
 }
+
+/** RF-12: aceptar (true) o rechazar (false) la nueva fecha de una salida reprogramada. */
+export function responderReprogramacion(id, acepta) {
+  return pedir(`/api/reservas/${id}/reprogramacion`, { metodo: 'POST', cuerpo: { acepta } });
+}

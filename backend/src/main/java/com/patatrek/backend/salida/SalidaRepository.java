@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.Optional;
 
 public interface SalidaRepository extends JpaRepository<Salida, Long> {
 
@@ -19,7 +18,4 @@ public interface SalidaRepository extends JpaRepository<Salida, Long> {
 
     @Query("select s.idSalida from Salida s where s.excursion.nombre = :nombre and s.estadoSalida = :estado order by s.idSalida")
     List<Long> findIdsPorExcursionYEstado(@Param("nombre") String nombreExcursion, @Param("estado") EstadoSalida estado);
-
-@Query("SELECT s FROM Salida s LEFT JOIN FETCH s.excursion LEFT JOIN FETCH s.asignacionGuias ag LEFT JOIN FETCH ag.guia WHERE s.idSalida = :id")
-    Optional<Salida> findByIdConGuias(@Param("id") Long id);
 }

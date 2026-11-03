@@ -28,10 +28,10 @@ import MisReservasPagina from './paginas/cliente/MisReservasPagina.jsx';
 import ValorarPagina from './paginas/cliente/ValorarPagina.jsx';
 import CargarCertificadosPagina from './paginas/certificados/CargarCertificadosPagina.jsx';
 import MiCertificadoPagina from './paginas/certificados/MiCertificadoPagina.jsx';
-import {PlanificarSalida} from './components/salidas/PlanificarSalida.jsx';
-import {AsignarPersonalCupos} from './components/salidas/AsignarPersonalCupos.jsx';
-import { RegistrarContingencia } from './components/salidas/RegistrarContingencia'; 
-import AdminSalidas from './paginas/admin/AdminSalidas.jsx'; 
+import AdminSalidasPagina from './paginas/admin/salidas/AdminSalidasPagina.jsx';
+import FormularioSalidaPagina from './paginas/admin/salidas/FormularioSalidaPagina.jsx';
+import PersonalCuposPagina from './paginas/admin/salidas/PersonalCuposPagina.jsx';
+import ContingenciaPagina from './paginas/admin/salidas/ContingenciaPagina.jsx';
 
 // Módulos del Administrador ya implementados. Se agregan acá a medida que se terminan.
 const MODULOS_DISPONIBLES = ['/admin/excursiones', '/admin/salidas', '/admin/reservas', '/admin/equipamiento', '/admin/valoraciones', '/admin/devoluciones', '/admin/certificados'];
@@ -99,10 +99,11 @@ function App() {
                 <Route path="valoraciones" element={<AdminValoracionesPagina />} />
                 <Route path="devoluciones" element={<AdminDevolucionesPagina />} />
                 <Route path="certificados" element={<AdminCertificados />} />
-                <Route path="salidas" element={<AdminSalidas />} />
-                <Route path="salidas/nueva" element={<PlanificarSalida/>}/>
-                <Route path="salidas/:id/asignar-cupos" element={<AsignarPersonalCupos />} />
-                <Route path="salidas/:id/contingencia" element={<RegistrarContingencia />} />
+                <Route path="salidas" element={<AdminSalidasPagina />} />
+                <Route path="salidas/nueva" element={<FormularioSalidaPagina />} />
+                <Route path="salidas/:id/editar" element={<FormularioSalidaPagina />} />
+                <Route path="salidas/:id/personal" element={<PersonalCuposPagina />} />
+                <Route path="salidas/:id/contingencia" element={<ContingenciaPagina />} />
                 <Route path="*" element={<Proximamente />} />
             </Route>
         </Routes>

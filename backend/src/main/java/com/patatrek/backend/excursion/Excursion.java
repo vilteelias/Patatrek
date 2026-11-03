@@ -1,6 +1,5 @@
 package com.patatrek.backend.excursion;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.patatrek.backend.equipamiento.Equipamiento;
 import jakarta.persistence.*;
 
@@ -72,7 +71,6 @@ public class Excursion {
             joinColumns = @JoinColumn(name = "id_excursion"),
             inverseJoinColumns = @JoinColumn(name = "id_equipamiento"))
     @OrderBy("nombre ASC")
-    @JsonIgnore
     private Set<Equipamiento> equipamientoObligatorio = new LinkedHashSet<>();
 
     public boolean estaActiva() {

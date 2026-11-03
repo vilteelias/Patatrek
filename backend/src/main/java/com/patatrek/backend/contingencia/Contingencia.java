@@ -28,7 +28,7 @@ public class Contingencia {
     @Column(name = "fecha_anterior_salida")
     private LocalDateTime fechaAnteriorSalida;
 
-    @Column(name = "recorrido_alternativo", length = 500)
+    @Column(name = "recorrido_alternativo", length = 1000)
     private String recorridoAlternativo;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

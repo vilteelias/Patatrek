@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle2, CreditCard, FileText, Info, XCircle } from 'lucide-react';
+import { CalendarClock, CheckCircle2, CreditCard, FileText, Info, Loader2, XCircle } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { CancelarReservaDialog } from '@/components/reserva/cancelar-reserva-dialog';
 import { EstadoReservaBadge } from '@/components/reserva/estado-reserva-badge';
@@ -14,7 +14,7 @@ import {
   hora,
   pesos,
 } from '@/components/reserva/formato';
-import { cancelarReserva, obtenerReserva } from '@/api/reservas';
+import { cancelarReserva, obtenerReserva, responderReprogramacion } from '@/api/reservas';
 import { cn } from '@/lib/utils';
 import { Aviso, Cargando, Volver } from './Estados';
 
@@ -38,6 +38,87 @@ const faltanMasDe72Horas = (salida) => {
   return inicio.getTime() - Date.now() > 72 * 60 * 60 * 1000;
 };
 
+/** CU-14: la salida se reprogramó y el titular tiene que aceptar la nueva fecha o rechazarla (devolución total). */
+function AvisoReprogramacion({ reserva, onRespondida }) {
+  const [rechazando, setRechazando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState('');
+  const r = reserva.reprogramacion;
+  const s = reserva.salida;
+
+  const responder = async (acepta) => {
+    setEnviando(true);
+    setError('');
+    try {
+      onRespondida(await responderReprogramacion(reserva.idReserva, acepta), acepta);
+    } catch (e) {
+      setError(e.message);
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <section
+      aria-labelledby="t-reprogramacion"
+      className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-5 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100 sm:px-6"
+    >
+      <h2 id="t-reprogramacion" className="flex items-center gap-2 font-semibold">
+        <CalendarClock className="size-5 shrink-0" aria-hidden="true" /> Tu salida fue reprogramada
+      </h2>
+      <dl className="grid gap-2 text-sm sm:grid-cols-2">
+        {r.fechaAnterior && (
+          <div>
+            <dt className="text-xs opacity-80">Fecha anterior</dt>
+            <dd className="font-medium line-through decoration-1">{fechaHora(r.fechaAnterior)} h</dd>
+          </div>
+        )}
+        <div>
+          <dt className="text-xs opacity-80">Nueva fecha</dt>
+          <dd className="font-semibold">
+            {formatearRangoFechas(s.fechaInicio, s.fechaFinalizacion)} · {hora(s.horaInicio)} h
+          </dd>
+        </div>
+        {r.motivo && (
+          <div className="sm:col-span-2">
+            <dt className="text-xs opacity-80">Motivo</dt>
+            <dd>{r.motivo}</dd>
+          </div>
+        )}
+        {r.nuevoRecorrido && (
+          <div className="sm:col-span-2">
+            <dt className="text-xs opacity-80">Recorrido</dt>
+            <dd>{r.nuevoRecorrido}</dd>
+          </div>
+        )}
+      </dl>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {rechazando ? (
+        <div role="alertdialog" aria-labelledby="t-rechazo" className="flex flex-col gap-3 rounded-xl bg-card px-4 py-3 text-foreground">
+          <p id="t-rechazo" className="text-sm">
+            Si rechazás la nueva fecha, la reserva se cancela y te devolvemos el total abonado
+            {Number(reserva.importeAbonado) > 0 ? ` (${pesos(reserva.importeAbonado)})` : ''}. ¿Querés continuar?
+          </p>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setRechazando(false)} disabled={enviando}>Volver</Button>
+            <Button type="button" variant="destructive" onClick={() => responder(false)} disabled={enviando}>
+              {enviando && <Loader2 className="animate-spin" aria-hidden="true" />} Sí, rechazar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" onClick={() => responder(true)} disabled={enviando}>
+            {enviando && <Loader2 className="animate-spin" aria-hidden="true" />} Acepto la nueva fecha
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setRechazando(true)} disabled={enviando}>
+            Rechazar y pedir devolución
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * CU-19 Consultar y gestionar reserva: resultado del pago, detalle, pagar el saldo y cancelar (CU-23).
  * CU-24 Cargar certificado médico: solo se ofrece si la excursión lo exige; se deshabilita junto con el pago
@@ -51,6 +132,7 @@ export default function ReservaDetallePagina() {
   const [error, setError] = useState('');
   const [cancelando, setCancelando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [avisoReprogramacion, setAvisoReprogramacion] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,6 +170,24 @@ export default function ReservaDetallePagina() {
   return (
       <div className="mx-auto flex max-w-[720px] flex-col gap-5">
         <Volver to="/mis-reservas">Mis reservas</Volver>
+
+        {avisoReprogramacion && (
+            <p role="status" className="rounded-xl border border-primary/30 bg-accent px-4 py-3 text-sm text-foreground">{avisoReprogramacion}</p>
+        )}
+
+        {reserva.reprogramacion && (
+            <AvisoReprogramacion
+                reserva={reserva}
+                onRespondida={(r, acepta) => {
+                  setReserva(r);
+                  setAvisoReprogramacion(
+                      acepta
+                          ? 'Aceptaste la nueva fecha. Tu reserva sigue vigente.'
+                          : 'Rechazaste la nueva fecha: la reserva pasó a Pendiente de devolución y te avisaremos por correo cuando se procese.',
+                  );
+                }}
+            />
+        )}
 
         {resultado && (
             <div

@@ -6,8 +6,6 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * SALIDA = id_salida(PK) + id_excursion(FK) + fecha_inicio + fecha_finalizacion + hora_inicio
@@ -15,8 +13,8 @@ import java.util.List;
  *        + observaciones + motivo_cancelacion + recorrido + cupos_ocupados + cupo_total
  *        + cupos_retenidos (NUEVO: corrección de recursos retenidos)
  *
- * Por ahora solo se usa desde Excursiones para saber si hay salidas activas.
- * La lógica completa (planificar, listar, modificar...) llega en el módulo Salidas.
+ * La gestión (planificar, listar, modificar, personal y cupos, baja) está en GestionSalidaService
+ * y las contingencias en ContingenciaService.
  */
 @Entity
 @Table(name = "salida")
@@ -29,9 +27,6 @@ public class Salida {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_excursion", nullable = false)
     private Excursion excursion;
-
-    @OneToMany(mappedBy = "salida", cascade = CascadeType.ALL, orphanRemoval = true)
-private List<AsignacionGuia> asignacionGuias = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDate fechaInicio;
@@ -89,7 +84,7 @@ private List<AsignacionGuia> asignacionGuias = new ArrayList<>();
     public void setExcursion(Excursion excursion) { this.excursion = excursion; }
 
     public LocalDate getFechaInicio() { return fechaInicio; }
-    public void setFechaInicio(LocalDate dia) { this.fechaInicio = dia; }
+    public void setFechaInicio(LocalDate fechaInicio) { this.fechaInicio = fechaInicio; }
 
     public LocalDate getFechaFinalizacion() { return fechaFinalizacion; }
     public void setFechaFinalizacion(LocalDate fechaFinalizacion) { this.fechaFinalizacion = fechaFinalizacion; }
@@ -129,19 +124,4 @@ private List<AsignacionGuia> asignacionGuias = new ArrayList<>();
 
     public String getRecorrido() { return recorrido; }
     public void setRecorrido(String recorrido) { this.recorrido = recorrido; }
-
-    public void addAsignacionGuia(AsignacionGuia asignacionGuia) {
-    if (this.asignacionGuias == null) {
-        this.asignacionGuias = new ArrayList<>();
-    }
-    this.asignacionGuias.add(asignacionGuia);
-}
-
-public List<AsignacionGuia> getAsignacionGuias() {
-    return asignacionGuias;
-}
-
-public void setAsignacionGuias(List<AsignacionGuia> asignacionGuias) {
-    this.asignacionGuias = asignacionGuias;
-}
 }

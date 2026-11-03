@@ -188,7 +188,14 @@ export default function MisReservasPagina() {
                     {r.cantidadParticipantes === 1 ? '1 plaza' : `${r.cantidadParticipantes} plazas`}
                   </p>
                 </div>
-                <EstadoReservaBadge estado={r.estadoReserva} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {r.reprogramacionPendiente && ['SENADA', 'CONFIRMADA', 'PENDIENTE_PAGO'].includes(r.estadoReserva) && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">
+                      Salida reprogramada · respondé
+                    </span>
+                  )}
+                  <EstadoReservaBadge estado={r.estadoReserva} />
+                </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3">
                 <Dato etiqueta="Importe total">{pesos(r.montoTotal)}</Dato>
