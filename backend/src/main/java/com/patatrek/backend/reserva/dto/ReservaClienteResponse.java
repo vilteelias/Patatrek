@@ -11,4 +11,5 @@ import java.time.LocalTime;
 public record ReservaClienteResponse(Long idReserva, String excursion, LocalDate fechaInicio,
                                      LocalDate fechaFinalizacion, LocalTime horaInicio, EstadoReserva estadoReserva,
                                      int cantidadParticipantes, BigDecimal montoTotal, BigDecimal saldoPendiente,
-                                     String estadoPago, LocalDateTime fechaHora) {}
+                                     String estadoPago, LocalDateTime fechaHora,
+                                     boolean reprogramacionPendiente) {}

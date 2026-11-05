@@ -13,11 +13,11 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/guia")
-public class GuiaController {
+public class PanelGuiaController {
 
     private final OperacionTerrenoService service;
 
-    public GuiaController(OperacionTerrenoService service) {
+    public PanelGuiaController(OperacionTerrenoService service) {
         this.service = service;
     }
 

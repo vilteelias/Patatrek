@@ -3,6 +3,8 @@ package com.patatrek.backend.reserva;
 import com.patatrek.backend.auth.Rol;
 import com.patatrek.backend.auth.UsuarioActual;
 import com.patatrek.backend.certificado.CertificadoMedicoService;
+import com.patatrek.backend.contingencia.ContingenciaRepository;
+import com.patatrek.backend.contingencia.TipoResolucion;
 import com.patatrek.backend.equipamiento.Equipamiento;
 import com.patatrek.backend.excepcion.AccesoDenegadoException;
 import com.patatrek.backend.excepcion.CredencialesInvalidasException;
@@ -84,6 +86,7 @@ public class ReservaService {
     private final String correoClienteDemo;
     private final UsuarioActual usuarioActual;
     private final boolean exigirLogin;
+    private final ContingenciaRepository contingenciaRepository;
 
     public ReservaService(EntityManager em,
                           ReservaRepository reservaRepository,
@@ -95,6 +98,7 @@ public class ReservaService {
                           PasarelaPagosSimulada pasarela,
                           NotificacionService notificacionService,
                           CertificadoMedicoService certificadoMedicoService,
+                          ContingenciaRepository contingenciaRepository,
                           @Value("${patatrek.minutos-retencion:10}") int minutosRetencion,
                           @Value("${patatrek.cliente-demo-correo:sofia.ibarra@mail.com}") String correoClienteDemo,
                           UsuarioActual usuarioActual,
@@ -110,6 +114,7 @@ public class ReservaService {
         this.pasarela = pasarela;
         this.notificacionService = notificacionService;
         this.certificadoMedicoService = certificadoMedicoService;
+        this.contingenciaRepository = contingenciaRepository;
         this.minutosRetencion = minutosRetencion;
         this.correoClienteDemo = correoClienteDemo;
         this.usuarioActual = usuarioActual;
@@ -157,7 +162,7 @@ public class ReservaService {
                 .map(r -> new ReservaClienteResponse(r.getIdReserva(), r.getSalida().getExcursion().getNombre(),
                         r.getSalida().getFechaInicio(), r.getSalida().getFechaFinalizacion(), r.getSalida().getHoraInicio(),
                         r.getEstadoReserva(), r.getCantidadParticipantes(), r.getMontoTotal(), r.getSaldoPendiente(),
-                        estadosPago.get(r.getIdReserva()), r.getFechaHora()))
+                        estadosPago.get(r.getIdReserva()), r.getFechaHora(), r.isReprogramacionPendiente()))
                 .toList();
     }
 
@@ -734,6 +739,39 @@ public class ReservaService {
         }
     }
 
+    /** CU-14 (cancelación de la salida): una reserva que todavía no pagó se cancela y libera lo retenido. */
+    public void cancelarPendientePorContingencia(Reserva reserva, String motivo) {
+        liberar(reserva, motivo);
+    }
+
+    /**
+     * RF-12: el cliente responde a la reprogramación de la salida desde su panel.
+     * Si acepta, la reserva sigue igual. Si rechaza, pasa a "Pendiente de devolución" (se le reintegra todo con CU-27)
+     * y se liberan en ese momento los cupos, las plazas de refugio y el equipamiento.
+     */
+    @Transactional
+    public ReservaResponse responderReprogramacion(Long idReserva, boolean acepta) {
+        Reserva reserva = buscarReserva(idReserva);
+        if (!reserva.getCliente().getIdUsuario().equals(clienteActual().getIdUsuario())) {
+            throw new AccesoDenegadoException("Solo el cliente titular puede responder la reprogramación.");
+        }
+        if (!reserva.isReprogramacionPendiente() || !EstadoReserva.VIGENTES.contains(reserva.getEstadoReserva())) {
+            throw new ReglaNegocioException("Esta reserva no tiene una reprogramación pendiente de respuesta.");
+        }
+        Salida salida = buscarSalida(reserva.getSalida().getIdSalida(), true);
+        reserva.setReprogramacionPendiente(false);
+        if (!acepta) {
+            liberarRecursosConsolidados(reserva, salida);
+            reserva.setEstadoReserva(EstadoReserva.PENDIENTE_DEVOLUCION);
+            reserva.setMotivoCancelacion("Rechazo de la reprogramación de la salida por contingencia (nueva fecha: "
+                    + salida(salida.getFechaInicio(), salida.getFechaFinalizacion(), salida.getHoraInicio()) + ").");
+            log.info("Reserva #{}: el cliente rechazó la reprogramación", idReserva);
+        } else {
+            log.info("Reserva #{}: el cliente aceptó la reprogramación", idReserva);
+        }
+        return respuesta(reserva);
+    }
+
     /** Cancela la reserva pendiente y devuelve lo retenido (CU-18 14a y 15a). */
     private void liberar(Reserva reserva, String motivo) {
         Salida salida = reserva.getSalida();
@@ -990,6 +1028,18 @@ public class ReservaService {
                                 p.getModoPago(), p.getEstadoPago(), p.getNroTransaccion()))
                         .toList(),
                 r.getMontoTotal().subtract(r.getSaldoPendiente()).max(BigDecimal.ZERO),
-                motivoNoCancelable(r) == null);
+                motivoNoCancelable(r) == null,
+                reprogramacion(r));
+    }
+
+    private ReservaResponse.Reprogramacion reprogramacion(Reserva r) {
+        if (!r.isReprogramacionPendiente() || !EstadoReserva.VIGENTES.contains(r.getEstadoReserva())) {
+            return null;
+        }
+        return contingenciaRepository.findFirstBySalidaIdSalidaAndTipoResolucionOrderByFechaRegistroDesc(
+                        r.getSalida().getIdSalida(), TipoResolucion.REPROGRAMACION.name())
+                .map(c -> new ReservaResponse.Reprogramacion(c.getFechaAnteriorSalida(), c.getMotivo(),
+                        c.getRecorridoAlternativo()))
+                .orElse(new ReservaResponse.Reprogramacion(null, null, null));
     }
 }

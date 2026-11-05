@@ -68,13 +68,15 @@ public class AjusteRestriccionesBase implements CommandLineRunner {
     /**
      * CU-24: al registrar la reserva se crea un certificado "Pendiente" por participante, todavía sin archivo ni fechas.
      * En las bases creadas con el script anterior, archivo_adjunto (columna vieja, hoy es path_archivo_adjunto),
-     * fecha_subida y fecha_vencimiento no admiten vacíos, y la reserva falla. Se las deja admitir vacíos.
+     * fecha_subida y fecha_vencimiento no admiten vacíos, y la reserva falla. Lo mismo con maximo_intentos si la
+     * tabla la creó Hibernate con la versión anterior (sin valor por defecto). Se las deja admitir vacíos.
      */
     private void permitirCertificadosPendientes(Connection con) {
         Map<String, String> columnas = new LinkedHashMap<>();
         columnas.put("archivo_adjunto", "nvarchar(255)");
         columnas.put("fecha_subida", "datetime2");
         columnas.put("fecha_vencimiento", "date");
+        columnas.put("maximo_intentos", "int"); // columna vieja que ya no se usa (el máximo es fijo en el código)
         for (Map.Entry<String, String> columna : columnas.entrySet()) {
             try (PreparedStatement ps = con.prepareStatement(
                     "select 1 from sys.columns where object_id = object_id('dbo.certificado_medico')"

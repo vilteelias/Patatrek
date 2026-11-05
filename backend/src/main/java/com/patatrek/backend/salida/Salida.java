@@ -13,8 +13,8 @@ import java.time.LocalTime;
  *        + observaciones + motivo_cancelacion + recorrido + cupos_ocupados + cupo_total
  *        + cupos_retenidos (NUEVO: corrección de recursos retenidos)
  *
- * Por ahora solo se usa desde Excursiones para saber si hay salidas activas.
- * La lógica completa (planificar, listar, modificar...) llega en el módulo Salidas.
+ * La gestión (planificar, listar, modificar, personal y cupos, baja) está en GestionSalidaService
+ * y las contingencias en ContingenciaService.
  */
 @Entity
 @Table(name = "salida")

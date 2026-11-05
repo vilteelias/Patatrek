@@ -33,8 +33,13 @@ public record ReservaResponse(
         List<EquipamientoResumen> equipamiento,
         List<PagoResumen> pagos,
         BigDecimal importeAbonado,
-        boolean cancelable
+        boolean cancelable,
+        /** RF-12: la salida se reprogramó por una contingencia y el cliente tiene que aceptar o rechazar la nueva fecha. */
+        Reprogramacion reprogramacion
 ) {
+    /** fechaAnterior y motivo de la última reprogramación (null si no hay una pendiente de respuesta). */
+    public record Reprogramacion(LocalDateTime fechaAnterior, String motivo, String nuevoRecorrido) {}
+
     public record SalidaResumen(Long idSalida, Long idExcursion, String excursion, LocalDate fechaInicio,
                                 LocalDate fechaFinalizacion, LocalTime horaInicio, LocalTime horaFinalizacion,
                                 BigDecimal precioPorPersona, boolean requiereCertificado) {}
