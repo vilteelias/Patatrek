@@ -124,4 +124,13 @@ public class Salida {
 
     public String getRecorrido() { return recorrido; }
     public void setRecorrido(String recorrido) { this.recorrido = recorrido; }
+
+    /**
+     * Recorrido que se va a hacer en esta salida: el propio (copiado de la excursión al planificar, o el alternativo
+     * de una contingencia) o, si no tiene, el recorrido base de su excursión.
+     */
+    public String recorridoVigente() {
+        if (recorrido != null && !recorrido.isBlank()) return recorrido;
+        return excursion != null ? excursion.getRecorridoBase() : null;
+    }
 }

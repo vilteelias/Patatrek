@@ -371,7 +371,8 @@ public class ReservaService {
             String motivo = motivoNoReservable(s);
             return new SalidaReservableResponse(s.getIdSalida(), s.getFechaInicio(), s.getFechaFinalizacion(),
                     s.getHoraInicio(), s.getHoraFinalizacion(), Math.max(0, s.getCuposDisponibles()),
-                    s.getEstadoSalida(), conRefugio.contains(s.getIdSalida()), motivo == null, motivo);
+                    s.getEstadoSalida(), conRefugio.contains(s.getIdSalida()), motivo == null, motivo,
+                    s.recorridoVigente());
         }).toList();
     }
 
@@ -1012,7 +1013,7 @@ public class ReservaService {
                 motivoNoPago == null ? modosDisponibles(r) : List.of(), motivoNoPago,
                 new ReservaResponse.SalidaResumen(s.getIdSalida(), e.getIdExcursion(), e.getNombre(), s.getFechaInicio(),
                         s.getFechaFinalizacion(), s.getHoraInicio(), s.getHoraFinalizacion(), e.getPrecio(),
-                        e.isRequiereCertificado()),
+                        e.isRequiereCertificado(), s.recorridoVigente()),
                 participanteRepository.findByReservaIdReservaOrderByIdParticipanteAsc(r.getIdReserva()).stream()
                         .map(p -> new ReservaResponse.ParticipanteResumen(p.getDni(), p.getNombre(), p.getApellido(),
                                 p.getCorreoElectronico()))

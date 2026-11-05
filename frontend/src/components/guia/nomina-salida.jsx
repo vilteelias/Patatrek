@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ClipboardCheck, Flag, Users } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ClipboardCheck, Flag, Home, Mountain, Route, Users } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,38 @@ export function NominaSalida({
           <EstadoSalidaBadge estado={estadoSalida} />
         </div>
       </header>
+
+      {(salida.recorrido || salida.descripcionTecnica || salida.refugios?.length > 0) && (
+        <Card className={cn(CARD_CLASE, 'gap-3 px-5 py-4 sm:px-6')}>
+          {salida.recorrido && (
+            <div className="flex gap-3">
+              <Route className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recorrido</h2>
+                <p className="text-sm text-foreground">{salida.recorrido}</p>
+              </div>
+            </div>
+          )}
+          {salida.descripcionTecnica && (
+            <div className="flex gap-3">
+              <Mountain className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Información técnica</h2>
+                <p className="text-sm text-foreground">{salida.descripcionTecnica}</p>
+              </div>
+            </div>
+          )}
+          {salida.refugios?.length > 0 && (
+            <div className="flex gap-3">
+              <Home className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Refugios</h2>
+                <p className="text-sm text-foreground">{salida.refugios.join(' · ')}</p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {error ? (
         <Alert variant="destructive" className="rounded-xl bg-card">

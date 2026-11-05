@@ -70,15 +70,12 @@ public class ReservaController {
         return service.pagar(id, datos);
     }
 
-<<<<<<< HEAD
-=======
     /** RF-12: aceptar o rechazar la nueva fecha de una salida reprogramada por contingencia. */
     @PostMapping("/api/reservas/{id}/reprogramacion")
     public ReservaResponse responderReprogramacion(@PathVariable Long id, @RequestBody RespuestaReprogramacionRequest datos) {
         return service.responderReprogramacion(id, Boolean.TRUE.equals(datos.acepta()));
     }
 
->>>>>>> salidas
     /** CU-23: el cliente cancela su reserva (sin devolución). El motivo es opcional. */
     @PostMapping("/api/reservas/{id}/cancelacion")
     public ReservaResponse cancelar(@PathVariable Long id, @Valid @RequestBody(required = false) CancelacionRequest datos) {

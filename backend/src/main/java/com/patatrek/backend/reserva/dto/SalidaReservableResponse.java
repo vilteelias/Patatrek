@@ -16,5 +16,7 @@ public record SalidaReservableResponse(
         EstadoSalida estadoSalida,
         boolean tieneRefugio,
         boolean reservable,
-        String motivoNoReservable
+        String motivoNoReservable,
+        /** Recorrido de esta salida (puede diferir del de la excursión si hubo una contingencia). */
+        String recorrido
 ) {}

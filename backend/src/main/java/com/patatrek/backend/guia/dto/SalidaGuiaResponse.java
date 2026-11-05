@@ -22,12 +22,16 @@ public record SalidaGuiaResponse(
         EstadoSalida estadoSalida,
         TipoGuia rolGuia,
         int cupoMaximo,
+        /** Cupo de la salida con sus guías actuales (cupo base + ayudantes, RF-10). Es el que se muestra al guía. */
+        int cupoTotal,
         int cuposOcupados,
         String guiaResponsable,
         List<String> guiasAyudantes,
         List<String> refugios,
         String observaciones,
         boolean requiereCertificado,
-        List<EquipamientoResponse> equipamientoObligatorio
+        List<EquipamientoResponse> equipamientoObligatorio,
+        String recorrido,
+        String descripcionTecnica
 ) {
 }

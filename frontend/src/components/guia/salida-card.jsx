@@ -8,7 +8,7 @@ export function SalidaCard({ salida, onVerParticipantes }) {
   const inactiva = salida.estadoSalida === 'FINALIZADA' || salida.estadoSalida === 'CANCELADA';
   const rol = salida.rolGuia === 'RESPONSABLE' ? 'Guía responsable' : 'Guía ayudante';
   const datos = [
-    { etiqueta: 'Participantes', valor: `${salida.cuposOcupados} / ${salida.cupoMaximo}` },
+    { etiqueta: 'Participantes', valor: `${salida.cuposOcupados} / ${salida.cupoTotal ?? salida.cupoMaximo}` },
     { etiqueta: 'Guía responsable', valor: salida.guiaResponsable },
     {
       etiqueta: 'Guías ayudantes',

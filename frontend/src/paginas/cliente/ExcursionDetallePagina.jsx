@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Clock, Home, Users } from 'lucide-react';
+import { CalendarDays, Clock, Home, Mountain, Route, Users } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { listarSalidasDeExcursion, obtenerExcursion } from '@/api/reservas';
 import { formatearRangoFechas, hora, pesos } from '@/components/reserva/formato';
@@ -67,6 +67,30 @@ export default function ExcursionDetallePagina() {
             </span>
           </div>
           <p className="text-muted-foreground">{excursion.descripcionGeneral}</p>
+          {(excursion.recorridoBase || excursion.descripcionTecnica) && (
+            <div className="flex flex-col gap-3 rounded-xl bg-muted/60 px-4 py-3">
+              {excursion.recorridoBase && (
+                <div className="flex gap-3">
+                  <Route className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div className="flex flex-col gap-0.5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recorrido</h2>
+                    <p className="text-sm text-foreground">{excursion.recorridoBase}</p>
+                  </div>
+                </div>
+              )}
+              {excursion.descripcionTecnica && (
+                <div className="flex gap-3">
+                  <Mountain className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div className="flex flex-col gap-0.5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Información técnica
+                    </h2>
+                    <p className="text-sm text-foreground">{excursion.descripcionTecnica}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <ul className="flex flex-wrap gap-2 text-xs">
             <li className="rounded-md bg-muted px-2.5 py-1">{dias(excursion.duracion)}</li>
             {excursion.requiereCertificado && (
@@ -116,6 +140,14 @@ export default function ExcursionDetallePagina() {
                   </span>
                 )}
               </p>
+              {s.recorrido && s.recorrido !== excursion.recorridoBase && (
+                <p className="flex items-start gap-1.5 text-sm text-amber-800 dark:text-amber-300">
+                  <Route className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    <span className="font-semibold">Recorrido modificado:</span> {s.recorrido}
+                  </span>
+                </p>
+              )}
             </div>
             {s.reservable ? (
               <Link

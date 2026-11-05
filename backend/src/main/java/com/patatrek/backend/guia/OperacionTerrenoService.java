@@ -347,10 +347,11 @@ public class OperacionTerrenoService {
             return new SalidaGuiaResponse(
                     s.getIdSalida(), e.getNombre(), s.getFechaInicio(), s.getFechaFinalizacion(),
                     s.getHoraInicio().format(HORA), s.getHoraFinalizacion().format(HORA),
-                    s.getEstadoSalida(), a.getTipoGuia(), s.getCupoMaximo(), s.getCuposOcupados(),
+                    s.getEstadoSalida(), a.getTipoGuia(), s.getCupoMaximo(), s.getCupoTotal(), s.getCuposOcupados(),
                     responsable, ayudantes, refugiosPorSalida.getOrDefault(s.getIdSalida(), List.of()),
                     s.getObservaciones(), e.isRequiereCertificado(),
-                    e.getEquipamientoObligatorio().stream().map(EquipamientoResponse::de).toList());
+                    e.getEquipamientoObligatorio().stream().map(EquipamientoResponse::de).toList(),
+                    s.recorridoVigente(), e.getDescripcionTecnica());
         }).toList();
     }
 }

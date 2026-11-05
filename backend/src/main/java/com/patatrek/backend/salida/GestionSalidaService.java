@@ -460,6 +460,23 @@ public class GestionSalidaService {
         return sinCupo.size();
     }
 
+    /**
+     * Las salidas planificadas con la versión anterior quedaron sin recorrido. Toda salida hereda el recorrido base
+     * de su excursión (CU-09), así que se completa con ese.
+     */
+    @Transactional
+    public int repararRecorridos() {
+        List<Salida> sinRecorrido = em.createQuery(
+                        "select s from Salida s join fetch s.excursion where s.recorrido is null or trim(s.recorrido) = ''",
+                        Salida.class)
+                .getResultList();
+        for (Salida s : sinRecorrido) {
+            s.setRecorrido(s.getExcursion().getRecorridoBase());
+            log.info("Salida #{}: se completó el recorrido con el de la excursión", s.getIdSalida());
+        }
+        return sinRecorrido.size();
+    }
+
     // =====================================================================
     //  Auxiliares
     // =====================================================================
@@ -648,7 +665,7 @@ public class GestionSalidaService {
                     e.isRequiereCertificado(),
                     s.getFechaInicio(), s.getFechaFinalizacion(), s.getHoraInicio(), s.getHoraFinalizacion(),
                     s.getEstadoSalida(), s.getCupoBase(), s.getCupoMaximo(), s.getCupoTotal(), ocupados(s),
-                    Math.max(0, s.getCuposDisponibles()), responsable, ayudantes, refs, s.getRecorrido(),
+                    Math.max(0, s.getCuposDisponibles()), responsable, ayudantes, refs, s.recorridoVigente(),
                     s.getMotivoCancelacion(), s.getObservaciones(), activas, iniciada, modificable,
                     modificable && activas == 0, ACTIVAS.contains(s.getEstadoSalida()),
                     contingencias.getOrDefault(s.getIdSalida(), List.of()).stream()

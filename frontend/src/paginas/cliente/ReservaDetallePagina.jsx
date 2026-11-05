@@ -240,6 +240,7 @@ export default function ReservaDetallePagina() {
             <Fila etiqueta="Salida">
               {formatearRangoFechas(s.fechaInicio, s.fechaFinalizacion)} · {hora(s.horaInicio)} h
             </Fila>
+            {s.recorrido && <Fila etiqueta="Recorrido">{s.recorrido}</Fila>}
             <Fila etiqueta="Participantes">{reserva.cantidadParticipantes}</Fila>
             {reserva.modalidadAlojamiento && (
                 <Fila etiqueta="Alojamiento">

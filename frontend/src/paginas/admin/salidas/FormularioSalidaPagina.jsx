@@ -21,15 +21,30 @@ const VACIO = {
   refugiosPorNoche: [],
 };
 
-/** Días entre dos fechas "AAAA-MM-DD" (UTC para no depender del horario de verano). */
+/** El campo de fecha del navegador deja escribir años de hasta 6 cifras: se limita a 4. */
+const FECHA_MAXIMA = '9999-12-31';
+/** Ninguna excursión dura tanto: un rango mayor es un error de tipeo y no se calculan sus noches. */
+const NOCHES_MAXIMAS = 60;
+
+/** "AAAA-MM-DD" con año de 4 cifras y que exista en el calendario. */
+function fechaValida(f) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f ?? '')) return false;
+  const t = Date.parse(`${f}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === f;
+}
+
+/** Días entre dos fechas "AAAA-MM-DD" (UTC para no depender del horario de verano). NaN si alguna no es válida. */
 function diasEntre(a, b) {
+  if (!fechaValida(a) || !fechaValida(b)) return NaN;
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 }
 
+/** Suma días a una fecha "AAAA-MM-DD". Devuelve '' si la fecha no es válida. */
 function sumarDias(fecha, dias) {
+  if (!fechaValida(fecha)) return '';
   const d = new Date(`${fecha}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + dias);
-  return d.toISOString().slice(0, 10);
+  return fechaValida(d.toISOString().slice(0, 10)) ? d.toISOString().slice(0, 10) : '';
 }
 
 function Seccion({ numero, titulo, descripcion, deshabilitada, aviso, children }) {
@@ -61,10 +76,12 @@ function validar(d, excursion, guia, noches, editando) {
     if (!d.horaInicio) e.horaInicio = 'Ingresá la hora de inicio.';
     if (!d.fechaFinalizacion) e.fechaFinalizacion = 'Ingresá la fecha de finalización.';
     if (!d.horaFinalizacion) e.horaFinalizacion = 'Ingresá la hora de finalización.';
-    if (d.fechaInicio && d.horaInicio && new Date(`${d.fechaInicio}T${d.horaInicio}`) <= new Date()) {
+    if (d.fechaInicio && !fechaValida(d.fechaInicio)) e.fechaInicio = 'Ingresá una fecha válida.';
+    if (d.fechaFinalizacion && !fechaValida(d.fechaFinalizacion)) e.fechaFinalizacion = 'Ingresá una fecha válida.';
+    if (!e.fechaInicio && d.fechaInicio && d.horaInicio && new Date(`${d.fechaInicio}T${d.horaInicio}`) <= new Date()) {
       e.fechaInicio = 'La salida tiene que empezar en una fecha y hora futuras.';
     }
-    if (d.fechaInicio && d.fechaFinalizacion) {
+    if (!e.fechaInicio && !e.fechaFinalizacion && d.fechaInicio && d.fechaFinalizacion) {
       if (d.fechaFinalizacion < d.fechaInicio) {
         e.fechaFinalizacion = 'La fecha de finalización no puede ser anterior a la de inicio.';
       } else if (excursion && diasEntre(d.fechaInicio, d.fechaFinalizacion) + 1 !== excursion.duracionDias) {
@@ -141,10 +158,12 @@ export default function FormularioSalidaPagina() {
 
   const excursion = opciones?.excursiones.find((e) => String(e.idExcursion) === datos.idExcursion)
     ?? (salida && { idExcursion: salida.idExcursion, nombre: salida.excursion, duracionDias: salida.duracionDias });
+  const nochesDelRango = diasEntre(datos.fechaInicio, datos.fechaFinalizacion);
+  // Solo con fechas válidas y un rango razonable se consultan guías y refugios (evita cálculos con años irreales)
   const cronogramaCompleto =
-    Boolean(datos.fechaInicio && datos.horaInicio && datos.fechaFinalizacion && datos.horaFinalizacion) &&
-    datos.fechaFinalizacion >= datos.fechaInicio;
-  const noches = cronogramaCompleto ? diasEntre(datos.fechaInicio, datos.fechaFinalizacion) : 0;
+    Boolean(datos.horaInicio && datos.horaFinalizacion) &&
+    Number.isInteger(nochesDelRango) && nochesDelRango >= 0 && nochesDelRango <= NOCHES_MAXIMAS;
+  const noches = cronogramaCompleto ? nochesDelRango : 0;
   const guia = opciones?.guias.find((g) => String(g.idGuia) === datos.idGuiaResponsable);
 
   // Disponibilidad de guías y refugios para el período elegido
@@ -314,7 +333,7 @@ export default function FormularioSalidaPagina() {
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id="s-fechaInicio" label="Fecha de inicio" required={!editando} locked={editando} error={errores.fechaInicio}>
-            <Input type="date" className="h-10 bg-card" {...prop('fechaInicio')} />
+            <Input type="date" min={new Date().toISOString().slice(0, 10)} max={FECHA_MAXIMA} className="h-10 bg-card" {...prop('fechaInicio')} />
           </FormField>
           <FormField id="s-horaInicio" label="Hora de inicio" required={!editando} locked={editando} error={errores.horaInicio}>
             <Input type="time" className="h-10 bg-card" {...prop('horaInicio')} />
@@ -327,7 +346,7 @@ export default function FormularioSalidaPagina() {
             error={errores.fechaFinalizacion}
             hint={excursion && !editando ? `La excursión dura ${excursion.duracionDias === 1 ? '1 día' : `${excursion.duracionDias} días`}.` : undefined}
           >
-            <Input type="date" className="h-10 bg-card" {...prop('fechaFinalizacion')} />
+            <Input type="date" max={FECHA_MAXIMA} className="h-10 bg-card" {...prop('fechaFinalizacion')} />
           </FormField>
           <FormField id="s-horaFinalizacion" label="Hora de finalización" required={!editando} locked={editando} error={errores.horaFinalizacion}>
             <Input type="time" className="h-10 bg-card" {...prop('horaFinalizacion')} />

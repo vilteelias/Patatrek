@@ -120,7 +120,8 @@ export default function ContingenciaPagina() {
     if (datos.resolucion === 'REPROGRAMACION') {
       if (!datos.nuevaFechaInicio) e.nuevaFechaInicio = 'Ingresá la nueva fecha de inicio.';
       if (!datos.nuevaHoraInicio) e.nuevaHoraInicio = 'Ingresá el nuevo horario de inicio.';
-      if (datos.nuevaFechaInicio && datos.nuevaHoraInicio && new Date(`${datos.nuevaFechaInicio}T${datos.nuevaHoraInicio}`) <= new Date()) {
+      if (datos.nuevaFechaInicio && !/^\d{4}-\d{2}-\d{2}$/.test(datos.nuevaFechaInicio)) e.nuevaFechaInicio = 'Ingresá una fecha válida.';
+      if (!e.nuevaFechaInicio && datos.nuevaFechaInicio && datos.nuevaHoraInicio && new Date(`${datos.nuevaFechaInicio}T${datos.nuevaHoraInicio}`) <= new Date()) {
         e.nuevaFechaInicio = 'La nueva fecha y hora tienen que ser posteriores a la actual.';
       }
     }
@@ -228,7 +229,7 @@ export default function ContingenciaPagina() {
           <div className="grid gap-4 sm:grid-cols-3">
             <FormField id="c-nuevaFechaInicio" label="Nueva fecha de inicio" required error={errores.nuevaFechaInicio}
               hint={salida.duracionDias > 1 ? `Se mantiene la duración de ${salida.duracionDias} días.` : undefined}>
-              <Input id="c-nuevaFechaInicio" type="date" className="h-10 bg-card" value={datos.nuevaFechaInicio}
+              <Input id="c-nuevaFechaInicio" type="date" min={new Date().toISOString().slice(0, 10)} max="9999-12-31" className="h-10 bg-card" value={datos.nuevaFechaInicio}
                 onChange={(e) => fijar('nuevaFechaInicio', e.target.value)} aria-invalid={errores.nuevaFechaInicio ? true : undefined} />
             </FormField>
             <FormField id="c-nuevaHoraInicio" label="Hora de inicio" required error={errores.nuevaHoraInicio}>
