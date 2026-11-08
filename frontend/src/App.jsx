@@ -28,6 +28,8 @@ import MisReservasPagina from './paginas/cliente/MisReservasPagina.jsx';
 import ValorarPagina from './paginas/cliente/ValorarPagina.jsx';
 import CargarCertificadosPagina from './paginas/certificados/CargarCertificadosPagina.jsx';
 import MiCertificadoPagina from './paginas/certificados/MiCertificadoPagina.jsx';
+import AccesoParticipantePagina from './paginas/participante/AccesoParticipantePagina.jsx';
+import ParticipanteReservaPagina from './paginas/participante/ParticipanteReservaPagina.jsx';
 import AdminSalidasPagina from './paginas/admin/salidas/AdminSalidasPagina.jsx';
 import FormularioSalidaPagina from './paginas/admin/salidas/FormularioSalidaPagina.jsx';
 import PersonalCuposPagina from './paginas/admin/salidas/PersonalCuposPagina.jsx';
@@ -55,6 +57,9 @@ function App() {
 
             </Route>
             <Route path="/reservas/:idReserva/mi-certificado" element={<MiCertificadoPagina />} />
+            {/* CU-19 Participante sin cuenta: N.º de reserva + DNI (cargar su certificado y pagar el saldo) */}
+            <Route path="/participante" element={<AccesoParticipantePagina />} />
+            <Route path="/participante/reservas/:id" element={<ParticipanteReservaPagina />} />
 
             {/* Visitante y Cliente */}
             <Route element={<ClienteShell />}>

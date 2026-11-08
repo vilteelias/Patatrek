@@ -135,7 +135,7 @@ class CorreosDeReservaApiTest {
         pagar(id, "SENA", true);
         assertThat(registro.para("beto@ejemplo.com")).singleElement().satisfies(e -> {
             assertThat(e.correo().asunto()).contains("Cargá tu certificado médico");
-            assertThat(e.correo().urlBoton()).endsWith("/reservas/" + id + "/mi-certificado?dni=30111223");
+            assertThat(e.correo().urlBoton()).endsWith("/participante/reservas/" + id + "?dni=30111223");
             assertThat(e.correo().datos()).extracting(Correo.Dato::etiqueta).contains("Plazo para cargarlo");
         });
         // El titular recibe solo el comprobante (carga los certificados desde su cuenta)

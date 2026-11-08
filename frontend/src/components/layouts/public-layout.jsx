@@ -95,9 +95,12 @@ export function PublicLayout({ usuario, onIniciarSesion, onRegistrarme, onCerrar
       <main className="mx-auto w-full max-w-[1120px] flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
 
       <footer className="border-t border-border">
-        <p className="mx-auto max-w-[1120px] px-4 py-6 text-center text-sm text-muted-foreground sm:px-6">
-          PataTrek · Senderismo &amp; Aventura · Patagonia argentina
-        </p>
+        <div className="mx-auto flex max-w-[1120px] flex-col items-center gap-1 px-4 py-6 text-center text-sm text-muted-foreground sm:px-6">
+          <p>PataTrek · Senderismo &amp; Aventura · Patagonia argentina</p>
+          <Link to="/participante" className="font-medium text-foreground hover:underline">
+            ¿Te anotaron en una reserva? Consultala con el N.º de reserva y tu DNI
+          </Link>
+        </div>
       </footer>
     </div>
   );

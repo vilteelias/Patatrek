@@ -7,14 +7,6 @@ import { FormField } from '@/components/form-field';
 import { INICIO_POR_ROL, useSesion } from '@/sesion/SesionProvider';
 import { PantallaAcceso, rutaSegura } from './PantallaAcceso';
 
-// Cuentas cargadas por los datos de ejemplo (DatosInicialesUsuarios). Solo para la demostración.
-const CUENTAS_DEMO = [
-  { rol: 'Cliente', correo: 'sofia.ibarra@mail.com' },
-  { rol: 'Guía', correo: 'martin.almeida@patatrek.com' },
-  { rol: 'Administrador', correo: 'admin@patatrek.com' },
-];
-const CLAVE_DEMO = 'Patatrek2026';
-
 /** CU-02 Iniciar sesión (prototipo pág. 3). */
 export default function IngresarPagina() {
   const { usuario, cargando, ingresar } = useSesion();
@@ -126,30 +118,12 @@ export default function IngresarPagina() {
           </Link>
         </p>
 
-        <details className="mt-6 rounded-lg border border-dashed border-input px-3 py-2 text-xs text-muted-foreground">
-          <summary className="cursor-pointer font-semibold">Cuentas de demostración</summary>
-          <p className="mt-2">
-            Contraseña de todas: <code className="font-semibold text-foreground">{CLAVE_DEMO}</code>
-          </p>
-          <ul className="mt-1 flex flex-col gap-1">
-            {CUENTAS_DEMO.map((c) => (
-              <li key={c.correo}>
-                <button
-                  type="button"
-                  className="text-left underline-offset-2 hover:text-foreground hover:underline"
-                  onClick={() => {
-                    setCorreo(c.correo);
-                    setClave(CLAVE_DEMO);
-                    setErrores({});
-                    setError('');
-                  }}
-                >
-                  {c.rol}: {c.correo}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </details>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          ¿Te anotaron en una reserva?{' '}
+          <Link to="/participante" className="font-semibold text-foreground hover:underline">
+            Consultala con el N.º de reserva y tu DNI
+          </Link>
+        </p>
       </main>
     </PantallaAcceso>
   );

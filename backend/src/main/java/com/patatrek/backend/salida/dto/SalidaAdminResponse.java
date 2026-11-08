@@ -43,7 +43,9 @@ public record SalidaAdminResponse(
         boolean puedeDarseDeBaja,
         /** CU-14: Disponible, Completa o En curso. */
         boolean admiteContingencia,
-        List<ContingenciaResumen> contingencias
+        List<ContingenciaResumen> contingencias,
+        /** CU-16 / CU-17: fecha y hora en que el guía responsable marcó la finalización. */
+        LocalDateTime fechaHoraFinReal
 ) {
     public record GuiaResumen(Long idGuia, String nombre, int capacidadEstandar) {}
 

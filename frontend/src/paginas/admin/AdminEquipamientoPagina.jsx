@@ -7,7 +7,6 @@ import { CLASE_SELECT, formatearRangoFechas } from '@/components/reserva/formato
 import { consultarStockEquipamiento, listarSalidasParaEquipamiento } from '@/api/equipamiento-stock';
 import { cn } from '@/lib/utils';
 
-const SEGUNDOS_ACTUALIZACION = 10;
 
 const ESTADO_ASIGNACION = {
   RETENIDO: { etiqueta: 'Retenido', clase: 'bg-warning/15 text-warning' },
@@ -71,10 +70,9 @@ export default function AdminEquipamientoPagina() {
       .finally(() => setCargando(false));
   }, [idSalida]);
 
+  // Se consulta al abrir la pantalla o al cambiar la salida; después, solo con el botón "Actualizar disponibilidad".
   useEffect(() => {
     cargar();
-    const t = setInterval(cargar, SEGUNDOS_ACTUALIZACION * 1000);
-    return () => clearInterval(t);
   }, [cargar]);
 
   return (
@@ -107,12 +105,12 @@ export default function AdminEquipamientoPagina() {
             </select>
           </div>
           <Button type="button" variant="outline" className="h-10 px-4" onClick={cargar} disabled={cargando}>
-            <RotateCw className={cn(cargando && 'animate-spin')} aria-hidden="true" /> Actualizar
+            <RotateCw className={cn(cargando && 'animate-spin')} aria-hidden="true" /> Actualizar disponibilidad
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
           {actualizado &&
-            `Actualizado a las ${actualizado.toLocaleTimeString('es-AR')}. Se actualiza solo cada ${SEGUNDOS_ACTUALIZACION} segundos.`}
+            `Última actualización: ${actualizado.toLocaleTimeString('es-AR')} h.`}
         </p>
       </section>
 

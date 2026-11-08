@@ -672,7 +672,8 @@ public class GestionSalidaService {
                             .map(c -> new ContingenciaResumen(c.getIdContingencia(), c.getFechaRegistro(),
                                     c.getTipoContingencia(), c.getTipoResolucion(), c.getMotivo(),
                                     c.getRecorridoAlternativo(), c.getFechaAnteriorSalida()))
-                            .toList()));
+                            .toList(),
+                    s.getFechaHoraFinReal()));
         }
         return filas;
     }

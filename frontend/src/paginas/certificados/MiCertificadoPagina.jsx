@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
 import { AccesoLayout } from '@/components/layouts/acceso-layout';
 import { AvisoPlazo } from '@/components/certificados/aviso-plazo';
@@ -44,7 +44,14 @@ export default function MiCertificadoPagina() {
       <section aria-labelledby="titulo-mi-certificado" className="flex flex-col gap-5">
         <header>
           <p className="text-sm text-muted-foreground">
-            Reserva #{idReserva} <span className="text-warning">/</span> Mi certificado médico
+            {dni ? (
+              <Link to={`/participante/reservas/${idReserva}?dni=${dni}`} className="hover:text-foreground hover:underline">
+                Reserva #{idReserva}
+              </Link>
+            ) : (
+              <>Reserva #{idReserva}</>
+            )}{' '}
+            <span className="text-warning">/</span> Mi certificado médico
           </p>
           <h1 id="titulo-mi-certificado" className="mt-1 font-serif text-3xl font-semibold text-foreground">
             Mi certificado médico

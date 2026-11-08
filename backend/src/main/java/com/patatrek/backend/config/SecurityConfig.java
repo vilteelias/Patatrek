@@ -54,6 +54,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/**", "/uploads/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/excursiones/**").permitAll()
                     .requestMatchers("/api/valoraciones/**").permitAll()          // participante sin cuenta (enlace)
+                    .requestMatchers("/api/participante/**").permitAll()          // participante: ID de reserva + DNI
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRADOR")
                     .requestMatchers("/api/guia/**").hasRole("GUIA")
                     .requestMatchers("/api/cliente/**", "/api/reservas/**").hasRole("CLIENTE")

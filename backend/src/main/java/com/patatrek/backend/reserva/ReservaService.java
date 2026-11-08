@@ -943,15 +943,17 @@ public class ReservaService {
                     .saludo("Hola " + p.getNombre() + ":")
                     .parrafo(r.getCliente().getNombre() + " " + r.getCliente().getApellido()
                             + " te anotó en una excursión de PataTrek que exige certificado médico. "
-                            + "Podés cargar el tuyo desde el botón, sin necesidad de crear una cuenta.")
+                            + "Podés cargar el tuyo desde el botón, sin necesidad de crear una cuenta."
+                            + (r.getEstadoReserva() == EstadoReserva.SENADA
+                            ? " Desde ahí también podés pagar el saldo pendiente de la reserva." : ""))
                     .dato("Excursión", s.getExcursion().getNombre())
                     .dato("Salida", salida(s.getFechaInicio(), s.getFechaFinalizacion(), s.getHoraInicio()))
                     .dato("Reserva", "#" + r.getIdReserva())
                     .dato("Tu DNI", p.getDni())
                     .datoDestacado("Plazo para cargarlo", "hasta el " + fechaHora(limite) + " h")
                     .dato("Formatos", "PDF, JPG o PNG, hasta 5 MB")
-                    .boton("Cargar mi certificado", notificacionService.enlace(
-                            "/reservas/" + r.getIdReserva() + "/mi-certificado?dni=" + p.getDni()))
+                    .boton("Ver la reserva y cargar mi certificado", notificacionService.enlace(
+                            "/participante/reservas/" + r.getIdReserva() + "?dni=" + p.getDni()))
                     .nota("Si ningún participante de la reserva presenta su certificado antes del plazo, la reserva "
                             + "se cancela automáticamente sin devolución. Si no podés abrir el botón, entrá a PataTrek "
                             + "con el N.º de reserva y tu DNI.")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Loader2, Plus, Search } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, MessageSquareText, Plus, Search } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,12 +21,24 @@ import { darDeBajaSalida, listarSalidasAdmin } from '@/api/salidas';
 import { cn } from '@/lib/utils';
 
 /** Acciones de una fila (CU-11, CU-12, CU-13, CU-14): solo las que admite el estado de la salida. */
-function Acciones({ salida, onBaja }) {
+function Acciones({ salida, onBaja, onObservacion }) {
   const enlaces = [
     { texto: 'Modificar', ruta: `/admin/salidas/${salida.idSalida}/editar`, ver: salida.modificable },
     { texto: 'Personal y cupos', ruta: `/admin/salidas/${salida.idSalida}/personal`, ver: salida.modificable },
     { texto: 'Contingencia', ruta: `/admin/salidas/${salida.idSalida}/contingencia`, ver: salida.admiteContingencia },
   ].filter((e) => e.ver);
+  // CU-17 Ver observación de salida finalizada
+  if (salida.estadoSalida === 'FINALIZADA') {
+    return (
+      <button
+        type="button"
+        onClick={() => onObservacion(salida)}
+        className="text-xs font-semibold whitespace-nowrap text-primary hover:underline"
+      >
+        Ver observación
+      </button>
+    );
+  }
   if (enlaces.length === 0 && !salida.puedeDarseDeBaja) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
@@ -59,6 +71,7 @@ export default function AdminSalidasPagina() {
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState(location.state?.aviso ?? '');
   const [baja, setBaja] = useState(null);
+  const [observacion, setObservacion] = useState(null);
   const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
@@ -199,7 +212,7 @@ export default function AdminSalidasPagina() {
                     <EstadoSalidaBadge estado={s.estadoSalida} className="h-5 px-2.5" />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Acciones salida={s} onBaja={setBaja} />
+                    <Acciones salida={s} onBaja={setBaja} onObservacion={setObservacion} />
                   </td>
                 </tr>
               ))}
@@ -208,6 +221,7 @@ export default function AdminSalidasPagina() {
         </div>
       )}
 
+      <ObservacionDialog salida={observacion} onCerrar={() => setObservacion(null)} />
       <BajaDialog
         salida={baja}
         onCerrar={() => setBaja(null)}
@@ -222,6 +236,52 @@ export default function AdminSalidasPagina() {
 }
 
 /** CU-13 Dar de baja salida: pide el motivo (obligatorio). */
+/** CU-17 Ver observación de salida finalizada: lo que registró el guía responsable al finalizarla (CU-16). */
+function ObservacionDialog({ salida, onCerrar }) {
+  const fin = salida?.fechaHoraFinReal ? new Date(salida.fechaHoraFinReal) : null;
+  return (
+    <Dialog open={!!salida} onOpenChange={(a) => !a && onCerrar()}>
+      <DialogContent className="rounded-xl sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl font-semibold">Observación de la salida</DialogTitle>
+          <DialogDescription>{salida && `${salida.excursion} · ${cronograma(salida)}`}</DialogDescription>
+        </DialogHeader>
+        {salida && (
+          <div className="flex flex-col gap-3 text-sm">
+            <dl className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs text-muted-foreground">Guía responsable</dt>
+                <dd className="font-medium text-foreground">{salida.guiaResponsable?.nombre ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Finalizada el</dt>
+                <dd className="font-medium text-foreground">
+                  {fin
+                    ? `${fin.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })} · ${fin.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })} h`
+                    : '—'}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex gap-2 rounded-lg border border-border bg-muted/50 px-3 py-3">
+              <MessageSquareText className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              {salida.observaciones?.trim() ? (
+                <p className="whitespace-pre-line text-foreground">{salida.observaciones}</p>
+              ) : (
+                <p className="text-muted-foreground">El guía no dejó observaciones al finalizar la salida.</p>
+              )}
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCerrar}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function BajaDialog({ salida, onCerrar, onHecho }) {
   const [motivo, setMotivo] = useState('');
   const [error, setError] = useState('');
